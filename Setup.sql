@@ -19,16 +19,45 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO medusa_user;
 
 GRANT CONNECT ON DATABASE medusa_db TO medusa_user;
 
+-- Create Types
 
-ALTER TABLE customer ADD COLUMN username VARCHAR UNIQUE;
-
-
-ALTER TABLE customer ADD COLUMN password_hash TEXT;
-
-
-CREATE TABLE otp (
-  id UUID PRIMARY KEY,
-  email VARCHAR(255) NOT NULL,
-  otp VARCHAR(10) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+CREATE TYPE order_status_enum AS ENUM (
+    'pending',
+    'completed',
+    'canceled',
+    'requires_action',
+    'partially_shipped',
+    'shipped',
+    'partially_returned',
+    'returned',
+    'awaiting',
+    'draft'
 );
+
+CREATE TYPE order_claim_type_enum AS ENUM ('refund', 'replace', 'partial_refund');
+
+CREATE TYPE claim_reason_enum AS ENUM (
+    'missing_item',
+    'damaged_item',
+    'wrong_item',
+    'other'
+);
+
+
+CREATE TYPE return_status_enum AS ENUM (
+    'open',
+    'requested',
+    'received',
+    'requires_action',
+    'canceled',
+    'completed'
+);
+
+
+
+
+--------------------------------------------------------------
+-- Run Erd Script
+--------------------------------------------------------------
+
+
