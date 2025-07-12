@@ -6,7 +6,9 @@ export default defineConfig({
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
     admin: {
-      serve: false,
+      serve: true,
+      path: "app",
+      directory: __dirname + "/admin-build",
     },
     http: {
       storeCors: process.env.STORE_CORS!,
