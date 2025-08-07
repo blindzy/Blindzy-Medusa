@@ -1,4 +1,4 @@
-import { MedusaRequest, MedusaResponse } from "@medusajs/medusa";
+import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
 import { initORM } from "../../../../utils/orm";
 import { Customer } from "../../../../entities/customer.entity";
 import bcrypt from "bcryptjs";

@@ -32,4 +32,11 @@ export class Customer {
 
     @Property({ onUpdate: () => new Date() })
     updated_at: Date = new Date()
+
+    @Property({ nullable: true })
+    company_name?: string
+  
+    @Property({ nullable: true })
+    pfp_url?: string    
+
 }

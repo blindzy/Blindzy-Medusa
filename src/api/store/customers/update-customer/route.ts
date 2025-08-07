@@ -1,4 +1,4 @@
-import { MedusaRequest, MedusaResponse } from "@medusajs/medusa"
+import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { initORM } from "../../../../utils/orm"
 import { Customer } from "../../../../entities/customer.entity"
 
@@ -19,7 +19,15 @@ export async function PATCH(req: MedusaRequest, res: MedusaResponse) {
       return res.status(404).json({ error: "Customer not found." })
     }
 
-    const allowedFields = ["first_name", "last_name", "email", "username", "phone"]
+    const allowedFields = [
+      "first_name",
+      "last_name",
+      "email",
+      "username",
+      "phone",
+      "company_name",
+      "pfp_url",
+    ]
 
     for (const key of allowedFields) {
       if (updates[key] !== undefined) {
@@ -38,6 +46,8 @@ export async function PATCH(req: MedusaRequest, res: MedusaResponse) {
         email: customer.email,
         phone: customer.phone,
         username: customer.username,
+        company_name: customer.company_name,
+        pfp_url: customer.pfp_url,
       },
     })
   } catch (err) {
