@@ -1,7 +1,10 @@
-import type { MiddlewaresConfig } from "@medusajs/framework/http"
+import { defineMiddlewares } from "@medusajs/framework/http"
 
-export const config: MiddlewaresConfig = {
+export default defineMiddlewares({
   routes: [
-    // No authentication required for this endpoint
-  ],
-}
+    {
+      matcher: "/admin/products/custom_product*",
+      middlewares: [] 
+    }
+  ]
+})

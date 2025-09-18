@@ -81,7 +81,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         card_type: card.card_type,
         card_name: card.card_name,
         card_number: card.getDecryptedCardNumber(),
-        expiry_date: card.getDecryptedExpiryDate(), // ✅ NEW
+        expiry_date: card.getDecryptedExpiryDate(),
         security_code: card.getDecryptedSecurityCode(),
       }))
       

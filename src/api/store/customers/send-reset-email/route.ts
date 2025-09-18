@@ -2,19 +2,19 @@ import { Request, Response } from "express"
 import { Resend } from "resend"
 import { v4 as uuidv4 } from "uuid"
 import { initORM } from "../../../../utils/orm"
-import { Otp } from "../../../../entities/otp.entity" // Make sure this exists!
+import { Otp } from "../../../../entities/otp.entity"
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(req: Request, res: Response) {
   const { email } = req.body
-
+``
   if (!email) {
     return res.status(400).json({ error: "Email is required" })
   }
 
   try {
-    const otpCode = Math.floor(100000 + Math.random() * 900000).toString() // 6-digit code
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString()
     const orm = await initORM()
     const em = orm.em.fork()
 
