@@ -35,8 +35,9 @@ import {
     @Property()
     encrypted_security_code!: string
   
-    @Property()
-    encrypted_expiry_date!: string
+  // Persist to DB column `expiry_date` to match existing schema
+  @Property({ fieldName: 'expiry_date' })
+  encrypted_expiry_date!: string
   
     @Property()
     card_name!: string

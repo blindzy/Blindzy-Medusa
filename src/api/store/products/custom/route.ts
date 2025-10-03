@@ -1,53 +1,33 @@
 import { Request, Response } from 'express'
 import { initORM } from "../../../../utils/orm";
-import { Product } from "../../../../entities/product.entity";
-import { CustomizationOption } from "../../../../entities/customization_option.entity";
-import { CustomizationValue } from "../../../../entities/customization_value.entity";
+import { StandardProduct } from "../../../../entities/standard-product.entity";
 
-// GET /store/products/custom - Get all custom products with basic info
+// GET /store/products/custom - Get all products from standard Medusa product table
 export async function GET(req: Request, res: Response) {
   try {
-    console.log("Fetching all custom products for store...");
+    console.log("Fetching all products for store...");
     
     const orm = await initORM();
     const em = orm.em.fork();
 
-    // Get all products
-    const products = await em.find(Product, {});
-
-    // Get customization options count for each product
-    const productsData = await Promise.all(
-      products.map(async (product) => {
-        const optionsCount = await em.count(CustomizationOption, {
-          product_id: product.id
-        });
-
-        return {
-          id: product.id,
-          title: product.title,
-          description: product.description,
-          type: product.type,
-          base_price: product.base_price,
-          image_url: product.image_url,
-          customization_options_available: optionsCount,
-          created_at: product.created_at
-        };
-      })
-    );
-
-    console.log(`Found ${productsData.length} custom products`);
+    // Get all products from standard product table (excluding deleted ones)
+    const products = await em.find(StandardProduct, {
+      deleted_at: null
+    });
+    
+    console.log(`Found ${products.length} products in standard product table`);
 
     res.status(200).json({
       success: true,
-      products: productsData,
-      total_count: productsData.length
+      products: products,
+      total_count: products.length
     });
 
   } catch (error) {
-    console.error("Error fetching custom products:", error);
+    console.error("Error fetching products:", error);
     res.status(500).json({
       success: false,
-      error: "Failed to fetch custom products",
+      error: "Failed to fetch products",
       details: error.message
     });
   }

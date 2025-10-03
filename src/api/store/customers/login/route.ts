@@ -2,6 +2,7 @@ import { Request, Response } from 'express'
 import { initORM } from '../../../../utils/orm'
 import { Customer } from '../../../../entities/customer.entity'
 import bcrypt from 'bcryptjs'
+import jwt from 'jsonwebtoken'
 
 export const POST = async (req: Request, res: Response) => {
   const { email, username, password } = req.body
@@ -23,14 +24,27 @@ export const POST = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Invalid credentials' })
     }
 
-    const isValidPassword = await bcrypt.compare(password, customer.password_hash)
+    const isValidPassword = await bcrypt.compare(password, customer.password_hash || '')
 
     if (!isValidPassword) {
       return res.status(401).json({ error: 'Invalid credentials' })
     }
 
+    // Generate JWT token
+    const jwtSecret = process.env.JWT_SECRET || 'supersecret'
+    const token = jwt.sign(
+      {
+        id: customer.id,
+        email: customer.email,
+        username: customer.username,
+      },
+      jwtSecret,
+      { expiresIn: '7d' }
+    )
+
     return res.status(200).json({
       message: 'Login successful',
+      token,
       customer: {
         id: customer.id,
         first_name: customer.first_name,

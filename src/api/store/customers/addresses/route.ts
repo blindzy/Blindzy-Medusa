@@ -27,7 +27,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     } = req.body
 
     if (!email || !first_name || !last_name || !address_1 || !city || !country_code || !postal_code) {
-      return res.status(400).json({ message: "Missing required fields" })
+      return res.status(400).json({ message: "Missing requ ired fields" })
     }
 
     const orm = await initORM()

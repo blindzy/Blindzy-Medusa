@@ -2004,6 +2004,34 @@ CREATE TABLE IF NOT EXISTS public.workflow_execution
     CONSTRAINT workflow_execution_pkey PRIMARY KEY (workflow_id, transaction_id, run_id)
 );
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ALTER TABLE IF EXISTS public.application_method_buy_rules
     ADD CONSTRAINT application_method_buy_rules_application_method_id_foreign FOREIGN KEY (application_method_id)
     REFERENCES public.promotion_application_method (id) MATCH SIMPLE

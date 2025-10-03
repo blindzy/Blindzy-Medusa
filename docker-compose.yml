@@ -1,42 +1,51 @@
+# Docker Compose configuration (OPTIONAL - for containerized development)
+# Since we're using Vercel's Supabase database, you can run the project directly with:
+# npm install && npm run dev
+#
+# If you still want to use Docker for development, uncomment the configuration below:
+
 version: "3.8"
 
 services:
-  postgres:
-    container_name: medusa-backend-postgres
-    image: postgres:15
-    restart: always
-    environment:
-      POSTGRES_USER: medusa_user
-      POSTGRES_PASSWORD: admin123
-      POSTGRES_DB: medusa_db
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./db-init:/docker-entrypoint-initdb.d
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U medusa_user"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+  # PostgreSQL service is commented out since we're using Vercel's Supabase database
+  # postgres:
+  #   container_name: medusa-backend-postgres
+  #   image: postgres:15
+  #   restart: always
+  #   environment:
+  #     POSTGRES_USER: medusa_user
+  #     POSTGRES_PASSWORD: admin123
+  #     POSTGRES_DB: medusa_db
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+  #     - ./db-init:/docker-entrypoint-initdb.d
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U medusa_user"]
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 10
 
+  # Medusa service (optional - you can run directly with npm run dev)
   medusa:
     container_name: medusa-backend-medusa
     build: .
-    depends_on:
-      postgres:
-        condition: service_healthy
+    # Remove postgres dependency since we're using external database
+    # depends_on:
+    #   postgres:
+    #     condition: service_healthy
     ports:
       - "9000:9000"
     environment:
       NODE_ENV: development
     env_file:
-      - .env
+      - .env.local  # Use .env.local for local development with Supabase
     volumes:
       - .:/app
       - /app/node_modules
     working_dir: /app
     command: npm run dev
 
-volumes:
-  pgdata:
+# volumes:
+#   pgdata:
