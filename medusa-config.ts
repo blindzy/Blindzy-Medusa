@@ -26,4 +26,13 @@ export default defineConfig({
       options: {}
     }
   },
+  admin: {
+    vite: () => {
+      return {
+        server: {
+          allowedHosts: ["api.blindzy.com"],
+        },
+      }
+    },
+  },
 })
