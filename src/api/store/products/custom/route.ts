@@ -32,7 +32,21 @@ export async function GET(req: Request, res: Response) {
                 ),
                 'price_sets', (
                   SELECT COALESCE(json_agg(json_build_object(
-                    'price_set_id', pvps.price_set_id
+                    'price_set_id', pvps.price_set_id,
+                    'prices', (
+                      SELECT COALESCE(json_agg(json_build_object(
+                        'id', pr.id,
+                        'title', pr.title,
+                        'currency_code', pr.currency_code,
+                        'amount', pr.amount,
+                        'raw_amount', pr.raw_amount,
+                        'min_quantity', pr.min_quantity,
+                        'max_quantity', pr.max_quantity,
+                        'price_list_id', pr.price_list_id
+                      )), '[]'::json)
+                      FROM price pr
+                      WHERE pr.price_set_id = pvps.price_set_id AND pr.deleted_at IS NULL
+                    )
                   )), '[]'::json)
                   FROM product_variant_price_set pvps
                   WHERE pvps.variant_id = pv.id
