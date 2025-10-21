@@ -25,12 +25,12 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         c.email as customer_email,
         c.first_name,
         c.last_name,
-        ca.address_line_1,
-        ca.address_line_2,
+        ca.address_1,
+        ca.address_2,
         ca.city,
         ca.postal_code,
-        ca.state,
-        ca.country
+        ca.province,
+        ca.country_code as country
       FROM user_orders uo
       LEFT JOIN customer c ON uo.customer_id = c.id
       LEFT JOIN customer_address ca ON uo.address_id = ca.id
@@ -46,28 +46,114 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     // Transform the order to match Medusa's format
     const formattedOrder = {
       id: order.id,
+      display_id: parseInt(order.id.split('-')[0], 16),
       status: order.status,
       created_at: order.created_at,
       updated_at: order.updated_at,
+      canceled_at: null,
+      email: order.customer_email,
       customer: {
         id: order.customer_id,
         email: order.customer_email,
         first_name: order.first_name,
         last_name: order.last_name,
+        has_account: true,
+        phone: null,
+        metadata: null
       },
       shipping_address: {
-        address_1: order.address_line_1,
-        address_2: order.address_line_2,
+        first_name: order.first_name,
+        last_name: order.last_name,
+        company: null,
+        address_1: order.address_1,
+        address_2: order.address_2,
         city: order.city,
         postal_code: order.postal_code,
-        province: order.state,
+        province: order.province,
         country_code: order.country,
+        phone: null,
+        metadata: null
       },
-      items: typeof order.items === 'string' ? JSON.parse(order.items) : order.items,
-      total: order.total_price,
-      currency_code: "aud", // Assuming AUD as default currency
-      payment_status: "paid", // Since Stripe payment is done before order creation
-      fulfillment_status: order.status === 'completed' ? 'fulfilled' : 'not_fulfilled'
+      billing_address: {
+        first_name: order.first_name,
+        last_name: order.last_name,
+        company: null,
+        address_1: order.address_1,
+        address_2: order.address_2,
+        city: order.city,
+        postal_code: order.postal_code,
+        province: order.province,
+        country_code: order.country,
+        phone: null,
+        metadata: null
+      },
+      items: (typeof order.items === 'string' ? JSON.parse(order.items) : order.items).map(item => ({
+        id: `item_${item.product_id}`,
+        title: item.customizations?.title || 'Custom Product',
+        description: 'Custom Product',
+        thumbnail: item.customizations?.thumbnail,
+        variant: {
+          id: item.product_id,
+          title: item.customizations?.title || 'Custom Product',
+          product_id: item.product_id,
+          product: {
+            id: item.product_id,
+            title: item.customizations?.title || 'Custom Product',
+            thumbnail: item.customizations?.thumbnail,
+            handle: item.product_id,
+            description: 'Custom Product',
+            status: 'published',
+            images: item.customizations?.thumbnail ? [item.customizations.thumbnail] : []
+          }
+        },
+        quantity: item.quantity,
+        unit_price: item.customizations?.amount || 0,
+        subtotal: (item.customizations?.amount || 0) * item.quantity,
+        total: (item.customizations?.amount || 0) * item.quantity,
+        original_total: (item.customizations?.amount || 0) * item.quantity,
+        refundable: 0,
+        tax_total: 0,
+        tax_lines: [],
+        metadata: null
+      })),
+      total: order.total_price || 0,
+      subtotal: order.total_price || 0,
+      paid_total: order.total_price || 0,
+      refunded_total: 0,
+      refundable_amount: 0,
+      gift_card_total: 0,
+      gift_card_tax_total: 0,
+      tax_total: 0,
+      shipping_total: 0,
+      discount_total: 0,
+      currency_code: "aud",
+      payment_status: "captured",
+      fulfillment_status: order.status === 'completed' ? 'fulfilled' : 'not_fulfilled',
+      region: {
+        id: "reg_oceania",
+        name: "Oceania",
+        currency_code: "aud",
+        tax_rate: 0,
+        automatic_taxes: false,
+        tax_code: null
+      },
+      payments: [{
+        id: `pay_${order.id}`,
+        amount: order.total_price || 0,
+        currency_code: "aud",
+        provider_id: "stripe",
+        captured_at: order.created_at,
+        status: "captured"
+      }],
+      fulfillments: [],
+      returns: [],
+      claims: [],
+      refunds: [],
+      shipping_methods: [],
+      discounts: [],
+      gift_cards: [],
+      gift_card_transactions: [],
+      metadata: null
     }
 
     return res.status(200).json({
