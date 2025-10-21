@@ -34,10 +34,10 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     // Transform the data to match Medusa's order format
     const orders = result.map(order => ({
       id: order.id,
-      display_id: order.id.split('-')[0], // Use first part of UUID as display ID
+      display_id: parseInt(order.id.split('-')[0], 16), // Convert first part of UUID to number
       status: order.status,
       fulfillment_status: order.status === 'completed' ? 'fulfilled' : 'not_fulfilled',
-      payment_status: 'paid', // Since payment is handled by Stripe
+      payment_status: 'captured', // Since Stripe payment is already done
       created_at: order.created_at,
       updated_at: order.updated_at,
       email: order.customer_email,
@@ -59,21 +59,43 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         country_code: order.country
       },
       items: (typeof order.items === 'string' ? JSON.parse(order.items) : order.items).map(item => ({
-        ...item,
+        id: `item_${item.product_id}`,
         title: item.customizations?.title || 'Custom Product',
+        description: 'Custom Product',
+        thumbnail: item.customizations?.thumbnail,
         variant: {
+          id: item.product_id,
           title: item.customizations?.title || 'Custom Product',
+          product_id: item.product_id,
+          product: {
+            title: item.customizations?.title || 'Custom Product',
+            thumbnail: item.customizations?.thumbnail
+          }
         },
         quantity: item.quantity,
-        unit_price: item.customizations?.price || 0,
-        thumbnail: item.customizations?.thumbnail
+        unit_price: item.customizations?.amount || 0,
+        subtotal: (item.customizations?.amount || 0) * item.quantity,
+        total: (item.customizations?.amount || 0) * item.quantity,
+        original_total: (item.customizations?.amount || 0) * item.quantity,
+        refundable: 0,
       })),
-      total: order.total_price,
-      subtotal: order.total_price,
+      total: order.total_price || 0,
+      subtotal: order.total_price || 0,
+      refunded_total: 0,
+      paid_total: order.total_price || 0,
+      refundable_amount: 0,
+      gift_card_total: 0,
+      gift_card_tax_total: 0,
       tax_total: 0,
       shipping_total: 0,
       discount_total: 0,
-      currency_code: "aud" // Assuming AUD as default currency
+      currency_code: "aud", // Using AUD as default currency
+      region: {
+        id: "reg_oceania",
+        name: "Oceania",
+        currency_code: "aud",
+        tax_rate: 0
+      }
     }))
 
     // Format the response to match Medusa's order list format
