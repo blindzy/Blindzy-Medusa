@@ -12,11 +12,11 @@ export const config = {
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
   try {
-    const { customer_id, card_id, address_id } = req.body ?? {}
+    const { customer_id, address_id } = req.body ?? {}
 
     console.log("BODY:", req.body)
 
-    if (!customer_id || !card_id || !address_id) {
+    if (!customer_id || !address_id) {
       return res.status(400).json({ message: "Missing required fields" })
     }
 
@@ -27,7 +27,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     const cart = await em.findOne(
       Cart,
       { customer: customer_id }, // MikroORM matches by ID under the hood
-      { populate: ['items'] }
+      { populate: ["items"] }
     )
 
     if (!cart || !cart.items || cart.items.length === 0) {
@@ -56,24 +56,16 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       INSERT INTO user_orders (
         id,
         customer_id,
-        card_id,
         address_id,
         items,
         total_price,
         created_at,
         updated_at
       ) VALUES (
-        ?, ?, ?, ?, ?, ?, now(), now()
+        ?, ?, ?, ?, ?, now(), now()
       ) RETURNING *
     `,
-      [
-        orderId,
-        customer_id,
-        card_id,
-        address_id,
-        itemsJson,
-        total_price,
-      ]
+      [orderId, customer_id, address_id, itemsJson, total_price]
     )
 
     // 5. Clear cart items
