@@ -44,10 +44,15 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     const order = result[0]
 
     // Transform the order to match Medusa's format
+    const itemsArray = typeof order.items === 'string' ? JSON.parse(order.items) : order.items
+    const totalPrice = order.total_price || 0
+    
     const formattedOrder = {
       id: order.id,
       display_id: parseInt(order.id.split('-')[0], 16),
       status: order.status,
+      fulfillment_status: order.status === 'completed' ? 'fulfilled' : 'not_fulfilled',
+      payment_status: 'captured',
       created_at: order.created_at,
       updated_at: order.updated_at,
       canceled_at: null,
@@ -55,12 +60,21 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       cart_id: null,
       customer_id: order.customer_id,
       email: order.customer_email,
-      sales_channel_id: null,
-      sales_channel: null,
+      sales_channel_id: "default",
+      sales_channel: {
+        id: "default",
+        name: "Default Sales Channel",
+        description: "Default sales channel",
+        is_disabled: false,
+        created_at: order.created_at,
+        updated_at: order.updated_at,
+        deleted_at: null
+      },
       currency_code: "aud",
-      tax_rate: null,
+      tax_rate: 0,
       cart: null,
       draft_order: null,
+      order_change: null,
       customer: {
         id: order.customer_id,
         email: order.customer_email,
@@ -132,6 +146,9 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
           deleted_at: null,
           metadata: null,
           variant_rank: 0,
+          manage_inventory: false,
+          inventory_quantity: 0,
+          options: [],
           product: {
             id: item.product_id,
             title: item.customizations?.title || 'Custom Product',
@@ -174,28 +191,24 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         tax_total: 0,
         refundable: 0
       })),
-      total: order.total_price || 0,
-      subtotal: order.total_price || 0,
-      paid_total: order.total_price || 0,
+      total: totalPrice,
+      subtotal: totalPrice,
+      paid_total: totalPrice,
       refunded_total: 0,
       refundable_amount: 0,
       gift_card_total: 0,
       gift_card_tax_total: 0,
       tax_total: 0,
-      shipping_total: 0,
-      discount_total: 0,
-      currency_code: "aud",
-      tax_rate: 0,
-      
       raw_discount_total: 0,
-      discount_total: 0,
-      shipping_total: 0,
       shipping_tax_total: 0,
       raw_shipping_tax_total: 0,
-      raw_total: order.total_price || 0,
-      
-      payment_status: "captured",
-      fulfillment_status: order.status === 'completed' ? 'fulfilled' : 'not_fulfilled',
+      raw_total: totalPrice,
+      credit_line_total: 0,
+      item_total: totalPrice,
+      shipping_subtotal: 0,
+      original_total: totalPrice,
+      discount_subtotal: 0,
+      refundable_total: 0,
       region: {
         id: "reg_oceania",
         name: "Oceania",
@@ -220,21 +233,37 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
           }
         ]
       },
-      payments: [{
-        id: `pay_${order.id}`,
+      payment_collections: [{
+        id: `paycol_${order.id}`,
         created_at: order.created_at,
         updated_at: order.updated_at,
-        cart_id: null,
-        order_id: order.id,
-        swap_id: null,
-        amount: order.total_price || 0,
+        deleted_at: null,
+        type: "order_edit",
+        status: "authorized",
+        description: null,
+        amount: totalPrice,
+        authorized_amount: totalPrice,
+        refunded_amount: 0,
         currency_code: "aud",
-        amount_refunded: 0,
-        provider_id: "stripe",
-        data: {},
-        captured_at: order.created_at,
-        canceled_at: null,
-        metadata: null
+        metadata: null,
+        region_id: "reg_oceania",
+        payments: [{
+          id: `pay_${order.id}`,
+          created_at: order.created_at,
+          updated_at: order.updated_at,
+          cart_id: null,
+          order_id: order.id,
+          swap_id: null,
+          amount: totalPrice,
+          currency_code: "aud",
+          amount_refunded: 0,
+          provider_id: "stripe",
+          data: {},
+          captured_at: order.created_at,
+          canceled_at: null,
+          metadata: null,
+          refunds: []
+        }]
       }],
       fulfillments: [],
       returns: [],
