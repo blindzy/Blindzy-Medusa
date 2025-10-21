@@ -50,7 +50,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       }))
     )
 
-    // 4. Save order using raw SQL
+    // 4. Save order using raw SQL with empty string for card_id
     const result = await em.getConnection().execute(
       `
       INSERT INTO user_orders (
@@ -64,7 +64,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         updated_at,
         status
       ) VALUES (
-        ?, ?, ?, ?, ?, NULL, now(), now(), 'pending'
+        ?, ?, ?, ?, ?, '', now(), now(), 'pending'
       ) RETURNING *
     `,
       [orderId, customer_id, address_id, itemsJson, total_price]
