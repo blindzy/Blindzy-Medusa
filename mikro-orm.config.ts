@@ -16,4 +16,11 @@ export default defineConfig({
     path: './src/migrations',
     pathTs: './src/migrations',
   },
-})
+  pool: {
+    min: 0,
+    max: 1000,
+    acquireTimeoutMillis: 600000,
+    idleTimeoutMillis: 300000,
+  },
+  allowGlobalContext: true,
+});
