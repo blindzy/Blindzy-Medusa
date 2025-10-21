@@ -59,10 +59,12 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         address_id,
         items,
         total_price,
+        card_id,
         created_at,
-        updated_at
+        updated_at,
+        status
       ) VALUES (
-        ?, ?, ?, ?, ?, now(), now()
+        ?, ?, ?, ?, ?, NULL, now(), now(), 'pending'
       ) RETURNING *
     `,
       [orderId, customer_id, address_id, itemsJson, total_price]

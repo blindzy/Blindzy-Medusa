@@ -9,8 +9,8 @@ export default defineConfig({
   user: process.env.DB_USERNAME || 'medusa_user',
   password: process.env.DB_PASSWORD || 'admin123',
   dbName: process.env.DB_NAME || 'medusa_db',
-  entities: [], // Temporarily disable custom entities
-  entitiesTs: [], // Temporarily disable custom entities
+  entities: ["./dist/entities/*.js"],
+  entitiesTs: ["./src/entities/*.ts"],
   debug: process.env.NODE_ENV !== 'production',
   migrations: {
     path: './src/migrations',

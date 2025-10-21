@@ -9,8 +9,8 @@ export class UserOrder {
   @Property()
   customer_id: string
 
-  @Property()
-  card_id: string
+  @Property({ nullable: true })
+  card_id?: string
 
   @Property()
   address_id: string
