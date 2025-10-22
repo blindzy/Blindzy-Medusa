@@ -3,7 +3,6 @@ import { initORM } from "../../../../utils/orm"
 import { Cart } from "../../../../entities/cart.entity"
 import { CartItem } from "../../../../entities/cart-item.entity"
 import { Modules } from "@medusajs/framework/utils"
-import { CustomerAddress } from "../../../../entities/customer-address.entity"
 
 export const config = { api: { bodyParser: true } }
 
@@ -19,25 +18,21 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     const orm = await initORM()
     const em = orm.em.fork()
 
-    // ✅ Fetch cart with items
+    // ✅ Load cart
     const cart = await em.findOne(Cart, { customer: customer_id }, { populate: ["items"] })
     if (!cart || !cart.items?.length) {
       return res.status(400).json({ message: "Cart is empty" })
     }
 
-    // ✅ Resolve Medusa modules
     const orderModule: any = req.scope.resolve(Modules.ORDER)
-    const paymentModule: any = req.scope.resolve(Modules.PAYMENT)
 
-    // ✅ Get address from ORM (if you store addresses separately)
+    // ✅ Get address (if exists)
     let address = undefined
     if (address_id) {
-      // Try to find address in any existing address table
-      let address = await em.findOne(CustomerAddress, { id: address_id })
-      if (address) {
-        address = await em.findOne(CustomerAddress, { id: address_id })
+      const AddressEntity = em.getMetadata().find(e => e.className === "Address")?.class
+      if (AddressEntity) {
+        address = await em.findOne(AddressEntity, { id: address_id })
       }
-
       if (!address) {
         return res.status(400).json({ message: "Invalid address_id" })
       }
@@ -53,7 +48,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     }
     const currency_code = currencyMap[firstItemCurrency] || "aud"
 
-    // ✅ Prepare order items
+    // ✅ Create order items
     const orderItems = cart.items.map((item: any) => ({
       title: item.customizations?.title || "Custom Product",
       quantity: item.quantity,
@@ -61,14 +56,14 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       metadata: item.customizations || {},
     }))
 
-    // ✅ Create order
+    // ✅ Create the order directly
     const [order] = await orderModule.createOrders([
       {
         customer_id,
         email: cart.email || "guest@example.com",
         status: "completed",
         fulfillment_status: "not_fulfilled",
-        payment_status: "awaiting",
+        payment_status: "paid", // 👈 directly mark as paid
         currency_code,
         items: orderItems,
         shipping_address: address,
@@ -77,37 +72,11 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       },
     ])
 
-    // ✅ Create payment collection
-    const [paymentCollection] = await paymentModule.createPaymentCollections([
-      {
-        type: "order",
-        currency_code,
-        amount: order.total ?? 0,
-        order_id: order.id,
-        status: "authorized",
-      },
-    ])
-
-    // ✅ Mark payment as captured (paid)
-    await paymentModule.createPayments([
-      {
-        payment_collection_id: paymentCollection.id,
-        amount: order.total ?? 0,
-        currency_code,
-        provider_id: "manual",
-        data: { paid_via: "external_gateway" },
-        captured_at: new Date(),
-      },
-    ])
-
-    // ✅ Update order to "paid"
-    await orderModule.updateOrders({ id: order.id }, { payment_status: "paid" })
-
-    // ✅ Clear cart
+    // ✅ Optional: Clear cart
     await em.nativeDelete(CartItem, { cart: cart.id })
 
     return res.status(201).json({
-      message: "✅ Order placed successfully and marked as paid",
+      message: "✅ Order placed successfully (marked as paid)",
       order_id: order.id,
     })
   } catch (err) {
