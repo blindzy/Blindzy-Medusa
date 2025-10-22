@@ -9,11 +9,15 @@ export const config = { api: { bodyParser: true } }
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
   try {
     // 👇 Fix TS: req.body is unknown by default
-    const body = req.body as { customer_id: string; address_id?: string }
+    const body = req.body as { customer_id: string; address_id?: string; amount?: number }
 
-    const { customer_id, address_id } = body
+    const { customer_id, address_id, amount } = body
     if (!customer_id) {
       return res.status(400).json({ message: "Missing required field: customer_id" })
+    }
+
+    if (amount !== undefined && amount <= 0) {
+      return res.status(400).json({ message: "Amount must be greater than zero" })
     }
 
     // ✅ ORM
@@ -37,9 +41,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     const orderItems = cart.items.map((item: any) => ({
       title: item.customizations?.title || "Custom Product",
       quantity: item.quantity,
-      unit_price: item.customizations?.amount
-        ? Math.round(item.customizations.amount * 100)
-        : 0,
+      unit_price: amount,
       metadata: item.customizations || {},
     }))
 
@@ -51,8 +53,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         status: "completed",
         fulfillment_status: "fulfilled",
         payment_status: "captured",
-        currency_code:
-          (cart.items[0]?.customizations?.currency === "€" && "eur") || "usd",
+        currency_code: "usd",
         items: orderItems,
         metadata: { manually_paid: true, custom_checkout: true },
       },
