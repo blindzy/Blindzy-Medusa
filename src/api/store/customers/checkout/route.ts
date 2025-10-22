@@ -10,33 +10,29 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
   try {
     const body = req.body as {
       customer_id: string
-      address?: {
-        first_name?: string
-        last_name?: string
-        address_1?: string
-        city?: string
-        postal_code?: string
-        country_code?: string
-      }
+      address_id?: string
     }
 
-    const { customer_id, address } = body
+    const { customer_id, address_id } = body
     if (!customer_id) {
       return res.status(400).json({ message: "Missing required field: customer_id" })
     }
 
+    // ORM
     const orm = await initORM()
     const em = orm.em.fork()
 
+    // Find cart
     const cart = await em.findOne(Cart, { customer: customer_id }, { populate: ["items"] })
     if (!cart || !cart.items?.length) {
       return res.status(400).json({ message: "Cart is empty" })
     }
 
+    // Resolve modules
     const orderModule: any = req.scope.resolve(Modules.ORDER)
     const paymentModule: any = req.scope.resolve(Modules.PAYMENT)
 
-    // 🪙 Determine currency (default to AUD)
+    // Determine currency (defaults to AUD)
     const firstItemCurrency = cart.items[0]?.customizations?.currency || "AUD"
     const currencyMap: Record<string, string> = {
       "€": "eur",
@@ -46,7 +42,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     }
     const currency_code = currencyMap[firstItemCurrency] || "aud"
 
-    // ✅ Build order items
+    // Build order items
     const orderItems = cart.items.map((item: any) => ({
       title: item.customizations?.title || "Custom Product",
       quantity: item.quantity,
@@ -54,7 +50,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       metadata: item.customizations || {},
     }))
 
-    // ✅ Create order
+    // Create order
     const [order] = await orderModule.createOrders([
       {
         customer_id,
@@ -64,45 +60,43 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         payment_status: "awaiting",
         currency_code,
         items: orderItems,
-        shipping_address: address || {
-          first_name: "Default",
-          last_name: "Customer",
-          address_1: "123 Main Street",
-          city: "Sydney",
-          postal_code: "2000",
-          country_code: "au",
-        },
-        billing_address: address || {
-          first_name: "Default",
-          last_name: "Customer",
-          address_1: "123 Main Street",
-          city: "Sydney",
-          postal_code: "2000",
-          country_code: "au",
-        },
+        shipping_address_id: address_id,
+        billing_address_id: address_id,
         metadata: { manually_paid: true, custom_checkout: true },
       },
     ])
 
-    // ✅ Register payment manually
+    // ✅ Create Payment Collection (required in Medusa v2)
+    const [paymentCollection] = await paymentModule.createPaymentCollections([
+      {
+        type: "order",
+        currency_code,
+        amount: order.total ?? 0,
+        region_id: order.region_id ?? null,
+        order_id: order.id,
+        status: "authorized",
+      },
+    ])
+
+    // ✅ Register Payment under the Payment Collection
     await paymentModule.createPayments([
       {
+        payment_collection_id: paymentCollection.id,
         amount: order.total ?? 0,
         currency_code,
-        order_id: order.id,
-        provider_id: "manual", // use manual payment provider
+        provider_id: "manual",
         data: { paid_via: "external_gateway" },
         captured_at: new Date(),
       },
     ])
 
-    // ✅ Update order to mark as paid
+    // ✅ Update order as paid
     await orderModule.updateOrders(
       { id: order.id },
       { payment_status: "paid" }
     )
 
-    // 🧹 Clear the cart
+    // Clear cart
     await em.nativeDelete(CartItem, { cart: cart.id })
 
     return res.status(201).json({
