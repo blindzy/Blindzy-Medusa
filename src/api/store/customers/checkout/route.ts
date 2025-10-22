@@ -19,31 +19,29 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     const orm = await initORM()
     const em = orm.em.fork()
 
-    // 1️⃣ Load cart and its items
+    // ✅ 1️⃣ Load cart with items
     const cart = await em.findOne(Cart, { customer: customer_id }, { populate: ["items"] as any })
     if (!cart || !cart.items?.length) {
       return res.status(400).json({ message: "Cart is empty" })
     }
 
-    // 2️⃣ Load address (optional)
-    let addressForOrder: any = undefined
+    // ✅ 2️⃣ Load address (optional)
+    let addressForOrder: any
     if (address_id) {
       const foundAddress = await em.findOne(CustomerAddress, { id: address_id })
-        if (foundAddress) {
-          addressForOrder = {
-            first_name: foundAddress.first_name ?? "Customer",
-            last_name: foundAddress.last_name ?? "",
-            address_1: foundAddress.address_1 ?? "",
-            address_2: foundAddress.address_2 ?? "",
-            city: foundAddress.city ?? "",
-            postal_code: foundAddress.postal_code ?? "",
-            country_code: (foundAddress.country_code ?? "AU").toLowerCase(),
-            phone: foundAddress.phone ?? "",
-          }
+      if (foundAddress) {
+        addressForOrder = {
+          first_name: foundAddress.first_name ?? "Customer",
+          last_name: foundAddress.last_name ?? "",
+          address_1: foundAddress.address_1 ?? "",
+          address_2: foundAddress.address_2 ?? "",
+          city: foundAddress.city ?? "",
+          postal_code: foundAddress.postal_code ?? "",
+          country_code: (foundAddress.country_code ?? "AU").toLowerCase(),
+          phone: foundAddress.phone ?? "",
         }
-
+      }
     }
-
     if (!addressForOrder) {
       addressForOrder = {
         first_name: "Customer",
@@ -54,34 +52,32 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       }
     }
 
-    // 3️⃣ Resolve modules
+    // ✅ 3️⃣ Resolve modules
     const orderModule: any = req.scope.resolve(Modules.ORDER)
     const paymentModule: any = req.scope.resolve(Modules.PAYMENT)
 
-    // 4️⃣ Determine currency
+    // ✅ 4️⃣ Determine currency
     const firstItemCurrency = cart.items?.[0]?.customizations?.currency ?? "AUD"
     const currencyMap: Record<string, string> = { "€": "eur", $: "usd", AUD: "aud", "£": "gbp" }
     const currency_code = currencyMap[firstItemCurrency] ?? "aud"
 
-    // 5️⃣ Prepare order items
+    // ✅ 5️⃣ Prepare order items
     const orderItems = cart.items.map((it: any) => ({
       title: it.customizations?.title ?? "Custom Product",
       quantity: it.quantity ?? 1,
       unit_price:
-        typeof it.customizations?.amount === "number"
-          ? it.customizations.amount
-          : 0,
+        typeof it.customizations?.amount === "number" ? it.customizations.amount : 0,
       metadata: it.customizations ?? {},
     }))
 
-    // 6️⃣ Create the order
+    // ✅ 6️⃣ Create the order
     const [order] = await orderModule.createOrders([
       {
         customer_id,
         email: cart.email ?? "guest@example.com",
         status: "completed",
         fulfillment_status: "not_fulfilled",
-        payment_status: "pending", // temporarily pending
+        payment_status: "pending",
         currency_code,
         items: orderItems,
         shipping_address: addressForOrder,
@@ -90,20 +86,30 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       },
     ])
 
-    // 7️⃣ Create payment collection + mark as paid
+    // ✅ 7️⃣ Create payment collection → session → payment
+    const totalAmount = orderItems.reduce((sum, i) => sum + i.unit_price * i.quantity, 0)
+
+    // Create collection
     const paymentCollection = await paymentModule.createPaymentCollections({
-      region_id: "manual-region", // safe dummy id; not used by manual provider
       currency_code,
-      amount: orderItems.reduce((sum, i) => sum + i.unit_price * i.quantity, 0),
+      amount: totalAmount,
       created_by: "api",
       metadata: { linked_order_id: order.id },
     })
 
-    // Create the payment
+    // Create payment session (required for Medusa payment)
+    const paymentSession = await paymentModule.createPaymentSessions({
+      payment_collection_id: paymentCollection.id,
+      provider_id: "manual",
+      data: { paid_via: "external_gateway" },
+    })
+
+    // Create payment linked to that session
     const payment = await paymentModule.createPayments({
       payment_collection_id: paymentCollection.id,
+      payment_session_id: paymentSession.id,
       currency_code,
-      amount: paymentCollection.amount,
+      amount: totalAmount,
       provider_id: "manual",
       data: { paid_via: "external_gateway" },
     })
@@ -111,13 +117,13 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     // Capture (mark as paid)
     await paymentModule.capturePayment(payment.id)
 
-    // Update order to reflect paid status
+    // ✅ Update order’s payment_status
     await orderModule.updateOrders({ id: order.id }, { payment_status: "paid" })
 
-    // 8️⃣ Clear cart after order creation
+    // ✅ 8️⃣ Clear cart
     await em.nativeDelete(CartItem, { cart: cart.id })
 
-    // 9️⃣ Fetch the full order with payment details
+    // ✅ 9️⃣ Retrieve full order for response
     const fullOrder = await orderModule.retrieveOrder(order.id)
 
     return res.status(201).json({
