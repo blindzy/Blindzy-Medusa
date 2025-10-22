@@ -50,7 +50,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         email: cart.email || "guest@example.com",
         status: "completed",
         fulfillment_status: "fulfilled",
-        payment_status: "captured",
+        payment_status: "paid", // ✅ Mark as fully paid
         currency_code,
         items: orderItems,
         metadata: { manually_paid: true, custom_checkout: true },
@@ -61,7 +61,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     await em.nativeDelete(CartItem, { cart: cart.id })
 
     return res.status(201).json({
-      message: "✅ Order placed successfully",
+      message: "✅ Order placed successfully (already paid)",
       order,
     })
   } catch (err) {
