@@ -24,20 +24,32 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
     const cartModule = req.scope.resolve(Modules.CART)
 
-    // ensure shipping info is set on the cart
+    // Ensure shipping address is set
     await cartModule.updateCarts(cart.id, { shipping_address_id: address_id })
 
-    // complete the cart -> places the order
+    // Complete the cart (creates the order)
     const { result: order } = await completeCartWorkflow(req.scope).run({
       input: { id: cart.id },
     })
 
-    // optional: clear cart items in your custom DB entities
+    // ✅ Mark the order as paid manually
+    const orderModule = req.scope.resolve(Modules.ORDER)
+    const updatedOrder = await orderModule.updateOrders(order.id, {
+      status: "completed",
+    })
+
+    // Optional: delete cart items (if your app needs it)
     await em.nativeDelete(CartItem, { cart: cart.id })
 
-    return res.status(201).json({ message: "Order placed successfully", order })
+    return res.status(201).json({
+      message: "Order placed successfully and marked as paid",
+      order: updatedOrder,
+    })
   } catch (err) {
     console.error("Checkout error:", err)
-    return res.status(500).json({ message: "Internal server error", error: (err as Error).message })
+    return res.status(500).json({
+      message: "Internal server error",
+      error: (err as Error).message,
+    })
   }
 }
