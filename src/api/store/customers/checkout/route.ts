@@ -8,28 +8,17 @@ export const config = { api: { bodyParser: true } }
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
   try {
-    // 👇 Fix TS: req.body is unknown by default
-    const body = req.body as { customer_id: string; address_id?: string; amount?: number }
+    const body = req.body as { customer_id: string; address_id?: string }
+    const { customer_id } = body
 
-    const { customer_id, address_id, amount } = body
     if (!customer_id) {
       return res.status(400).json({ message: "Missing required field: customer_id" })
     }
 
-    if (amount !== undefined && amount <= 0) {
-      return res.status(400).json({ message: "Amount must be greater than zero" })
-    }
-
-    // ✅ ORM
     const orm = await initORM()
     const em = orm.em.fork()
 
-    // ✅ Get existing cart with items
-    const cart = await em.findOne(
-      Cart,
-      { customer: customer_id },
-      { populate: ["items"] }
-    )
+    const cart = await em.findOne(Cart, { customer: customer_id }, { populate: ["items"] })
 
     if (!cart || !cart.items?.length) {
       return res.status(400).json({ message: "Cart is empty" })
@@ -37,15 +26,24 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
     const orderModule: any = req.scope.resolve(Modules.ORDER)
 
-    // ✅ Build order items from your custom cart items
+    // 🪙 Determine currency (default to AUD)
+    const firstItemCurrency = cart.items[0]?.customizations?.currency || "AUD"
+    const currencyMap: Record<string, string> = {
+      "€": "eur",
+      "$": "usd",
+      "AUD": "aud",
+      "£": "gbp",
+    }
+    const currency_code = currencyMap[firstItemCurrency] || "aud"
+
+    // ✅ Build order items using your actual price (no *100)
     const orderItems = cart.items.map((item: any) => ({
       title: item.customizations?.title || "Custom Product",
       quantity: item.quantity,
-      unit_price: item.price,
+      unit_price: item.customizations?.amount || 0, // amount = 200 means $200
       metadata: item.customizations || {},
     }))
 
-    // ✅ Create a new order in Medusa
     const [order] = await orderModule.createOrders([
       {
         customer_id,
@@ -53,13 +51,13 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         status: "completed",
         fulfillment_status: "fulfilled",
         payment_status: "captured",
-        currency_code: "usd",
+        currency_code,
         items: orderItems,
         metadata: { manually_paid: true, custom_checkout: true },
       },
     ])
 
-    // ✅ (Optional) Clear the cart after order creation
+    // 🧹 Clear cart items (optional)
     await em.nativeDelete(CartItem, { cart: cart.id })
 
     return res.status(201).json({
