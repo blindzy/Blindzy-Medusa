@@ -1,97 +1,72 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { completeCartWorkflow } from "@medusajs/medusa/core-flows"
+import { initORM } from "../../../../utils/orm"
+import { Cart } from "../../../../entities/cart.entity"
+import { CartItem } from "../../../../entities/cart-item.entity"
 import { Modules } from "@medusajs/framework/utils"
 
 export const config = { api: { bodyParser: true } }
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
   try {
-    const { customer_id, address_id } = req.body as {
-      customer_id: string
-      address_id: string
+    // 👇 Fix TS: req.body is unknown by default
+    const body = req.body as { customer_id: string; address_id?: string }
+
+    const { customer_id, address_id } = body
+    if (!customer_id) {
+      return res.status(400).json({ message: "Missing required field: customer_id" })
     }
 
-    if (!customer_id || !address_id) {
-      return res.status(400).json({ message: "Missing required fields" })
-    }
+    // ✅ ORM
+    const orm = await initORM()
+    const em = orm.em.fork()
 
-    const cartModule: any = req.scope.resolve(Modules.CART)
-    const orderModule: any = req.scope.resolve(Modules.ORDER)
-
-    // Find cart for customer
-    const carts = await cartModule.listCarts(
-      { customer_id },
-      { relations: ["items"] }
+    // ✅ Get existing cart with items
+    const cart = await em.findOne(
+      Cart,
+      { customer: customer_id },
+      { populate: ["items"] }
     )
-    if (!carts?.length) {
-      return res.status(400).json({ message: "No active cart found for this customer" })
-    }
 
-    const cart = carts[0]
-    if (!cart.items?.length) {
+    if (!cart || !cart.items?.length) {
       return res.status(400).json({ message: "Cart is empty" })
     }
 
-    // Update cart with address
-    await cartModule.updateCarts(cart.id, {
-      shipping_address_id: address_id,
-    })
+    const orderModule: any = req.scope.resolve(Modules.ORDER)
 
-    // Complete cart -> create order
-    const completeResult: any = await completeCartWorkflow(req.scope).run({
-      input: { id: cart.id },
-    })
+    // ✅ Build order items from your custom cart items
+    const orderItems = cart.items.map((item: any) => ({
+      title: item.customizations?.title || "Custom Product",
+      quantity: item.quantity,
+      unit_price: item.customizations?.amount
+        ? Math.round(item.customizations.amount * 100)
+        : 0,
+      metadata: item.customizations || {},
+    }))
 
-    // Dynamically extract order ID
-    let orderId: string | undefined
-    if (completeResult) {
-      if (completeResult.result) {
-        const r = completeResult.result
-        if (typeof r === "object") {
-          if (r.id && typeof r.id === "string") {
-            orderId = r.id
-          } else if (r.order && r.order.id && typeof r.order.id === "string") {
-            orderId = r.order.id
-          }
-        }
-      }
-      if (!orderId && typeof completeResult.id === "string") {
-        orderId = completeResult.id
-      }
-      if (!orderId && completeResult.order && typeof completeResult.order.id === "string") {
-        orderId = completeResult.order.id
-      }
-    }
-
-    if (!orderId) {
-      return res.status(500).json({
-        message: "Could not determine order ID from workflow result",
-        debug: completeResult,
-      })
-    }
-
-    // Retrieve full order (so it appears in dashboard)
-    const persistedOrder = await orderModule.retrieveOrder(orderId)
-
-    if (!persistedOrder) {
-      return res.status(500).json({ message: "Failed to retrieve created order" })
-    }
-
-    // Mark as paid via metadata (safe type)
-    const [updatedOrder] = await orderModule.updateOrders(
-      { id: persistedOrder.id } as any,
+    // ✅ Create a new order in Medusa
+    const [order] = await orderModule.createOrders([
       {
+        customer_id,
+        email: cart.email || "guest@example.com",
         status: "completed",
-        metadata: { manually_paid: true },
-      } as any
-    )
+        fulfillment_status: "fulfilled",
+        payment_status: "captured",
+        currency_code:
+          (cart.items[0]?.customizations?.currency === "€" && "eur") || "usd",
+        items: orderItems,
+        metadata: { manually_paid: true, custom_checkout: true },
+      },
+    ])
+
+    // ✅ (Optional) Clear the cart after order creation
+    await em.nativeDelete(CartItem, { cart: cart.id })
 
     return res.status(201).json({
-      message: "Order placed successfully and marked as paid",
-      order: updatedOrder ?? persistedOrder,
+      message: "✅ Order placed successfully",
+      order,
     })
   } catch (err) {
-    console.error("Checkout error:", err)
+    console.error("❌ Checkout error:", err)
     return res.status(500).json({
       message: "Internal server error",
       error: (err as Error).message,
