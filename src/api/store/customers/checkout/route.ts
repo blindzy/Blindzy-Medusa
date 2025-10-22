@@ -20,22 +20,15 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     const em = orm.em.fork()
 
     // 1️⃣ Load cart and its items
-    const cart = await em.findOne(
-      Cart,
-      { customer: customer_id },
-      { populate: ["items"] as any }
-    )
-
+    const cart = await em.findOne(Cart, { customer: customer_id }, { populate: ["items"] as any })
     if (!cart || !cart.items?.length) {
       return res.status(400).json({ message: "Cart is empty" })
     }
 
-    // 2️⃣ Try to fetch address from your own address table if provided
+    // 2️⃣ Load address (optional)
     let addressForOrder: any = undefined
     if (address_id) {
-      try {
-        // Use the CustomerAddress entity directly
-        const foundAddress = await em.findOne(CustomerAddress, { id: address_id })
+      const foundAddress = await em.findOne(CustomerAddress, { id: address_id })
         if (foundAddress) {
           addressForOrder = {
             first_name: foundAddress.first_name ?? "Customer",
@@ -48,12 +41,9 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
             phone: foundAddress.phone ?? "",
           }
         }
-      } catch (err) {
-        console.warn("⚠️ Address entity not found or failed to load:", err)
-      }
+
     }
 
-    // 3️⃣ Fallback if address not found
     if (!addressForOrder) {
       addressForOrder = {
         first_name: "Customer",
@@ -64,15 +54,16 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       }
     }
 
-    // 4️⃣ Resolve modules
+    // 3️⃣ Resolve modules
     const orderModule: any = req.scope.resolve(Modules.ORDER)
+    const paymentModule: any = req.scope.resolve(Modules.PAYMENT)
 
-    // 5️⃣ Determine currency from cart’s first item (fallback to AUD)
+    // 4️⃣ Determine currency
     const firstItemCurrency = cart.items?.[0]?.customizations?.currency ?? "AUD"
     const currencyMap: Record<string, string> = { "€": "eur", $: "usd", AUD: "aud", "£": "gbp" }
     const currency_code = currencyMap[firstItemCurrency] ?? "aud"
 
-    // 6️⃣ Prepare order items from cart items
+    // 5️⃣ Prepare order items
     const orderItems = cart.items.map((it: any) => ({
       title: it.customizations?.title ?? "Custom Product",
       quantity: it.quantity ?? 1,
@@ -83,14 +74,14 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       metadata: it.customizations ?? {},
     }))
 
-    // 7️⃣ Create the order directly marked as PAID
+    // 6️⃣ Create the order
     const [order] = await orderModule.createOrders([
       {
         customer_id,
         email: cart.email ?? "guest@example.com",
         status: "completed",
         fulfillment_status: "not_fulfilled",
-        payment_status: "paid", // ✅ Directly mark as paid
+        payment_status: "pending", // temporarily pending
         currency_code,
         items: orderItems,
         shipping_address: addressForOrder,
@@ -99,10 +90,34 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       },
     ])
 
-    // 8️⃣ Clear cart after successful order
+    // 7️⃣ Create payment collection + mark as paid
+    const paymentCollection = await paymentModule.createPaymentCollections({
+      region_id: "manual-region", // safe dummy id; not used by manual provider
+      currency_code,
+      amount: orderItems.reduce((sum, i) => sum + i.unit_price * i.quantity, 0),
+      created_by: "api",
+      metadata: { linked_order_id: order.id },
+    })
+
+    // Create the payment
+    const payment = await paymentModule.createPayments({
+      payment_collection_id: paymentCollection.id,
+      currency_code,
+      amount: paymentCollection.amount,
+      provider_id: "manual",
+      data: { paid_via: "external_gateway" },
+    })
+
+    // Capture (mark as paid)
+    await paymentModule.capturePayment(payment.id)
+
+    // Update order to reflect paid status
+    await orderModule.updateOrders({ id: order.id }, { payment_status: "paid" })
+
+    // 8️⃣ Clear cart after order creation
     await em.nativeDelete(CartItem, { cart: cart.id })
 
-    // 9️⃣ Retrieve full order to include address/payment info
+    // 9️⃣ Fetch the full order with payment details
     const fullOrder = await orderModule.retrieveOrder(order.id)
 
     return res.status(201).json({
