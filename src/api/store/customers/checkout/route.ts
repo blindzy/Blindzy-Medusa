@@ -2,7 +2,6 @@ import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { initORM } from "../../../../utils/orm"
 import { Cart } from "../../../../entities/cart.entity"
 import { CartItem } from "../../../../entities/cart-item.entity"
-import { CustomerAddress } from "../../../../entities/customer-address.entity"
 import { Modules } from "@medusajs/framework/utils"
 
 export const config = { api: { bodyParser: true } }
@@ -19,34 +18,44 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     const orm = await initORM()
     const em = orm.em.fork()
 
-    // 🛒 1️⃣ Get existing cart with items
+    // 1️⃣ Load cart and its items
     const cart = await em.findOne(
       Cart,
       { customer: customer_id },
       { populate: ["items"] as any }
     )
+
     if (!cart || !cart.items?.length) {
       return res.status(400).json({ message: "Cart is empty" })
     }
 
-    // 📍 2️⃣ Get address (optional)
+    // 2️⃣ Try to fetch address from your own address table if provided
     let addressForOrder: any = undefined
     if (address_id) {
-      const foundAddress = await em.findOne(CustomerAddress, { id: address_id })
-      if (foundAddress) {
-        addressForOrder = {
-          first_name: foundAddress.first_name ?? "Customer",
-          last_name: foundAddress.last_name ?? "",
-          address_1: foundAddress.address_1 ?? "",
-          address_2: foundAddress.address_2 ?? "",
-          city: foundAddress.city ?? "",
-          postal_code: foundAddress.postal_code ?? "",
-          country_code: (foundAddress.country_code ?? "AU").toLowerCase(),
-          phone: foundAddress.phone ?? "",
+      try {
+        // Replace this entity name if your address entity is different
+        const AddressEntity = await import("../../../../entities/address.entity").then(
+          (m) => m.Address
+        )
+        const foundAddress = await em.findOne(AddressEntity, { id: address_id })
+        if (foundAddress) {
+          addressForOrder = {
+            first_name: foundAddress.first_name ?? "Customer",
+            last_name: foundAddress.last_name ?? "",
+            address_1: foundAddress.address_1 ?? "",
+            address_2: foundAddress.address_2 ?? "",
+            city: foundAddress.city ?? "",
+            postal_code: foundAddress.postal_code ?? "",
+            country_code: (foundAddress.country_code ?? "AU").toLowerCase(),
+            phone: foundAddress.phone ?? "",
+          }
         }
+      } catch (err) {
+        console.warn("⚠️ Address entity not found or failed to load:", err)
       }
     }
 
+    // 3️⃣ Fallback if address not found
     if (!addressForOrder) {
       addressForOrder = {
         first_name: "Customer",
@@ -57,41 +66,33 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       }
     }
 
-    // 🧩 3️⃣ Resolve modules
+    // 4️⃣ Resolve modules
     const orderModule: any = req.scope.resolve(Modules.ORDER)
-    const paymentModule: any = req.scope.resolve(Modules.PAYMENT)
 
-    // 💱 4️⃣ Currency
+    // 5️⃣ Determine currency from cart’s first item (fallback to AUD)
     const firstItemCurrency = cart.items?.[0]?.customizations?.currency ?? "AUD"
-    const currencyMap: Record<string, string> = {
-      "€": "eur",
-      $: "usd",
-      AUD: "aud",
-      "£": "gbp",
-    }
+    const currencyMap: Record<string, string> = { "€": "eur", $: "usd", AUD: "aud", "£": "gbp" }
     const currency_code = currencyMap[firstItemCurrency] ?? "aud"
 
-    // 🧾 5️⃣ Order items
+    // 6️⃣ Prepare order items from cart items
     const orderItems = cart.items.map((it: any) => ({
       title: it.customizations?.title ?? "Custom Product",
       quantity: it.quantity ?? 1,
-      unit_price: typeof it.customizations?.amount === "number" ? it.customizations.amount : 0,
+      unit_price:
+        typeof it.customizations?.amount === "number"
+          ? it.customizations.amount
+          : 0,
       metadata: it.customizations ?? {},
     }))
 
-    const totalAmount = orderItems.reduce(
-      (sum, i) => sum + i.unit_price * i.quantity,
-      0
-    )
-
-    // 🧾 6️⃣ Create order (pending payment)
+    // 7️⃣ Create the order directly marked as PAID
     const [order] = await orderModule.createOrders([
       {
         customer_id,
         email: cart.email ?? "guest@example.com",
         status: "completed",
         fulfillment_status: "not_fulfilled",
-        payment_status: "pending",
+        payment_status: "paid", // ✅ Directly mark as paid
         currency_code,
         items: orderItems,
         shipping_address: addressForOrder,
@@ -100,45 +101,10 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       },
     ])
 
-    // 💰 7️⃣ Create payment collection + session + payment
-    const paymentCollection = await paymentModule.createPaymentCollections({
-      currency_code,
-      amount: totalAmount,
-      created_by: "api",
-      metadata: { linked_order_id: order.id },
-    })
-
-    const session = await paymentModule.createPaymentSessions({
-      currency_code,
-      amount: totalAmount,
-      provider_id: "manual",
-      payment_collection_id: paymentCollection.id,
-      data: { paid_via: "external_gateway" },
-    })
-
-    const payment = await paymentModule.createPayments({
-      currency_code,
-      amount: totalAmount,
-      provider_id: "manual",
-      payment_collection_id: paymentCollection.id,
-      payment_session_id: session.id,
-      data: { paid_via: "external_gateway" },
-    })
-
-    // ✅ Retrieve full entity before capturing (fixes “id must be defined”)
-    const paymentEntity = await paymentModule.retrievePayment(payment.id)
-    if (!paymentEntity?.id) {
-      throw new Error(`Payment entity not found for id: ${payment.id}`)
-    }
-
-    // ✅ Capture payment and mark order as paid
-    await paymentModule.capturePayment(paymentEntity)
-    await orderModule.updateOrders({ id: order.id }, { payment_status: "paid" })
-
-    // 🧹 8️⃣ Clear cart
+    // 8️⃣ Clear cart after successful order
     await em.nativeDelete(CartItem, { cart: cart.id })
 
-    // 🔄 9️⃣ Fetch full order
+    // 9️⃣ Retrieve full order to include address/payment info
     const fullOrder = await orderModule.retrieveOrder(order.id)
 
     return res.status(201).json({
