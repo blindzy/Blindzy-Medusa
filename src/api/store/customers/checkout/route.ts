@@ -3,6 +3,7 @@ import { initORM } from "../../../../utils/orm"
 import { Cart } from "../../../../entities/cart.entity"
 import { CartItem } from "../../../../entities/cart-item.entity"
 import { Modules } from "@medusajs/framework/utils"
+import { CustomerAddress } from "../../../../entities/customer-address.entity"
 
 export const config = { api: { bodyParser: true } }
 
@@ -32,9 +33,9 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     let address = undefined
     if (address_id) {
       // Try to find address in any existing address table
-      const AddressEntity = em.getMetadata().find(e => e.className === "Address")?.class
-      if (AddressEntity) {
-        address = await em.findOne(AddressEntity, { id: address_id })
+      let address = await em.findOne(CustomerAddress, { id: address_id })
+      if (address) {
+        address = await em.findOne(CustomerAddress, { id: address_id })
       }
 
       if (!address) {
