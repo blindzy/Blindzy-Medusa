@@ -41,7 +41,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     const orderItems = cart.items.map((item: any) => ({
       title: item.customizations?.title || "Custom Product",
       quantity: item.quantity,
-      unit_price: amount,
+      unit_price: item.price,
       metadata: item.customizations || {},
     }))
 
