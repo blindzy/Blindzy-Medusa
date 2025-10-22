@@ -56,7 +56,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     const orderModule: any = req.scope.resolve(Modules.ORDER)
     const paymentModule: any = req.scope.resolve(Modules.PAYMENT)
 
-    // ✅ 4️⃣ Determine currency
+    // ✅ 4️⃣ Determine currency (convert € / AUD / etc.)
     const firstItemCurrency = cart.items?.[0]?.customizations?.currency ?? "AUD"
     const currencyMap: Record<string, string> = { "€": "eur", $: "usd", AUD: "aud", "£": "gbp" }
     const currency_code = currencyMap[firstItemCurrency] ?? "aud"
@@ -70,7 +70,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       metadata: it.customizations ?? {},
     }))
 
-    // ✅ 6️⃣ Create the order
+    // ✅ 6️⃣ Create order (initially pending payment)
     const [order] = await orderModule.createOrders([
       {
         customer_id,
@@ -86,10 +86,10 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       },
     ])
 
-    // ✅ 7️⃣ Create payment collection → session → payment
+    // ✅ 7️⃣ Create payment collection + session + payment
     const totalAmount = orderItems.reduce((sum, i) => sum + i.unit_price * i.quantity, 0)
 
-    // Create collection
+    // Create a collection
     const paymentCollection = await paymentModule.createPaymentCollections({
       currency_code,
       amount: totalAmount,
@@ -97,10 +97,11 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       metadata: { linked_order_id: order.id },
     })
 
-    // Create payment session (required for Medusa payment)
+    // Create a session (⚠️ added `currency_code` fix)
     const paymentSession = await paymentModule.createPaymentSessions({
       payment_collection_id: paymentCollection.id,
       provider_id: "manual",
+      currency_code, // ✅ REQUIRED FIELD FIXED
       data: { paid_via: "external_gateway" },
     })
 
@@ -114,16 +115,16 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       data: { paid_via: "external_gateway" },
     })
 
-    // Capture (mark as paid)
+    // Capture the payment (mark as paid)
     await paymentModule.capturePayment(payment.id)
 
-    // ✅ Update order’s payment_status
+    // Update the order to show payment as complete
     await orderModule.updateOrders({ id: order.id }, { payment_status: "paid" })
 
-    // ✅ 8️⃣ Clear cart
+    // ✅ 8️⃣ Clear cart after order creation
     await em.nativeDelete(CartItem, { cart: cart.id })
 
-    // ✅ 9️⃣ Retrieve full order for response
+    // ✅ 9️⃣ Retrieve final order
     const fullOrder = await orderModule.retrieveOrder(order.id)
 
     return res.status(201).json({
