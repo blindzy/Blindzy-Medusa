@@ -44,6 +44,43 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     const order = result[0]
 
     // Transform the order to match Medusa's format
+    let items
+    try {
+      items = (typeof order.items === 'string' ? JSON.parse(order.items) : order.items).map(item => ({
+        id: `item_${item.product_id}`,
+        title: item.customizations?.title || 'Custom Product',
+        description: 'Custom Product',
+        thumbnail: item.customizations?.thumbnail,
+        variant: {
+          id: item.product_id,
+          title: item.customizations?.title || 'Custom Product',
+          product_id: item.product_id,
+          product: {
+            id: item.product_id,
+            title: item.customizations?.title || 'Custom Product',
+            thumbnail: item.customizations?.thumbnail,
+            handle: item.product_id,
+            description: 'Custom Product',
+            status: 'published',
+            images: item.customizations?.thumbnail ? [item.customizations.thumbnail] : []
+          }
+        },
+        quantity: item.quantity,
+        unit_price: item.customizations?.amount || 0,
+        subtotal: (item.customizations?.amount || 0) * item.quantity,
+        total: (item.customizations?.amount || 0) * item.quantity,
+        original_total: (item.customizations?.amount || 0) * item.quantity,
+        refundable: 0,
+        tax_total: 0,
+        tax_lines: [],
+        metadata: null
+      }))
+    } catch (e) {
+      console.error("Failed to parse order.items JSON for preview:", e)
+      console.error("Problematic order.items value for preview:", order.items)
+      return res.status(500).json({ message: "Failed to parse order items for preview" })
+    }
+
     const formattedOrder = {
       id: order.id,
       display_id: parseInt(order.id.split('-')[0], 16),
@@ -87,35 +124,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         phone: null,
         metadata: null
       },
-      items: (typeof order.items === 'string' ? JSON.parse(order.items) : order.items).map(item => ({
-        id: `item_${item.product_id}`,
-        title: item.customizations?.title || 'Custom Product',
-        description: 'Custom Product',
-        thumbnail: item.customizations?.thumbnail,
-        variant: {
-          id: item.product_id,
-          title: item.customizations?.title || 'Custom Product',
-          product_id: item.product_id,
-          product: {
-            id: item.product_id,
-            title: item.customizations?.title || 'Custom Product',
-            thumbnail: item.customizations?.thumbnail,
-            handle: item.product_id,
-            description: 'Custom Product',
-            status: 'published',
-            images: item.customizations?.thumbnail ? [item.customizations.thumbnail] : []
-          }
-        },
-        quantity: item.quantity,
-        unit_price: item.customizations?.amount || 0,
-        subtotal: (item.customizations?.amount || 0) * item.quantity,
-        total: (item.customizations?.amount || 0) * item.quantity,
-        original_total: (item.customizations?.amount || 0) * item.quantity,
-        refundable: 0,
-        tax_total: 0,
-        tax_lines: [],
-        metadata: null
-      })),
+      items,
       total: order.total_price || 0,
       subtotal: order.total_price || 0,
       paid_total: order.total_price || 0,

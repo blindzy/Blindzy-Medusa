@@ -44,7 +44,14 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     const order = result[0]
 
     // Transform the order to match Medusa's format
-    const itemsArray = typeof order.items === 'string' ? JSON.parse(order.items) : order.items
+    let itemsArray
+    try {
+      itemsArray = typeof order.items === 'string' ? JSON.parse(order.items) : order.items
+    } catch (e) {
+      console.error("Failed to parse order.items JSON:", e)
+      console.error("Problematic order.items value:", order.items)
+      return res.status(500).json({ message: "Failed to parse order items" })
+    }
     const totalPrice = order.total_price || 0
     
     const formattedOrder = {
