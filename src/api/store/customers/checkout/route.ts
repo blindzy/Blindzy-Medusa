@@ -19,13 +19,13 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     const orm = await initORM()
     const em = orm.em.fork()
 
-    // 1️⃣ Load cart and items
+    // 1️⃣ Load cart and its items
     const cart = await em.findOne(Cart, { customer: customer_id }, { populate: ["items"] as any })
     if (!cart || !cart.items?.length) {
       return res.status(400).json({ message: "Cart is empty" })
     }
 
-    // 2️⃣ Get address (if exists)
+    // 2️⃣ Load address if provided
     let addressForOrder: any
     if (address_id) {
       const foundAddress = await em.findOne(CustomerAddress, { id: address_id })
@@ -57,7 +57,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     const orderModule: any = req.scope.resolve(Modules.ORDER)
     const paymentModule: any = req.scope.resolve(Modules.PAYMENT)
 
-    // 4️⃣ Currency detection
+    // 4️⃣ Detect currency
     const firstItemCurrency = cart.items?.[0]?.customizations?.currency ?? "AUD"
     const currencyMap: Record<string, string> = { "€": "eur", $: "usd", AUD: "aud", "£": "gbp" }
     const currency_code = currencyMap[firstItemCurrency] ?? "aud"
@@ -96,10 +96,22 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       metadata: { linked_order_id: order.id },
     })
 
-    // ✅ 8️⃣ Create payment directly (skip session)
+    // 8️⃣ ✅ Create payment session first
+    const [paymentSession] = await paymentModule.createPaymentSessions([
+      {
+        payment_collection_id: paymentCollection.id,
+        provider_id: "manual",
+        amount: totalAmount,
+        currency_code,
+        data: { paid_via: "external_gateway" },
+      },
+    ])
+
+    // 9️⃣ ✅ Create payment using that session
     const [payment] = await paymentModule.createPayments([
       {
         payment_collection_id: paymentCollection.id,
+        payment_session_id: paymentSession.id,
         currency_code,
         amount: totalAmount,
         provider_id: "manual",
@@ -107,19 +119,14 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       },
     ])
 
-    // ✅ Ensure payment is created
-    if (!payment?.id) {
-      throw new Error("Payment not created properly")
-    }
-
-    // ✅ 9️⃣ Capture / mark as paid
+    // 🔟 Capture (mark as paid)
     await paymentModule.capturePayment(payment.id)
     await orderModule.updateOrders({ id: order.id }, { payment_status: "paid" })
 
-    // 🔟 Clear cart
+    // 11️⃣ Clear cart
     await em.nativeDelete(CartItem, { cart: cart.id })
 
-    // 11️⃣ Return full order
+    // 12️⃣ Fetch full order
     const fullOrder = await orderModule.retrieveOrder(order.id)
 
     return res.status(201).json({
