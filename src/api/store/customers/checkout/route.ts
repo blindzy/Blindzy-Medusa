@@ -27,15 +27,17 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     // ✅ Resolve Medusa modules
     const orderModule: any = req.scope.resolve(Modules.ORDER)
     const paymentModule: any = req.scope.resolve(Modules.PAYMENT)
-    const customerModule: any = req.scope.resolve(Modules.CUSTOMER)
 
-    // ✅ Fetch address from Medusa customer module if provided
+    // ✅ Get address from ORM (if you store addresses separately)
     let address = undefined
     if (address_id) {
-      const [foundAddress] = await customerModule.listAddresses({ id: address_id })
-      if (foundAddress) {
-        address = foundAddress
-      } else {
+      // Try to find address in any existing address table
+      const AddressEntity = em.getMetadata().find(e => e.className === "Address")?.class
+      if (AddressEntity) {
+        address = await em.findOne(AddressEntity, { id: address_id })
+      }
+
+      if (!address) {
         return res.status(400).json({ message: "Invalid address_id" })
       }
     }
@@ -54,7 +56,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     const orderItems = cart.items.map((item: any) => ({
       title: item.customizations?.title || "Custom Product",
       quantity: item.quantity,
-      unit_price: item.customizations?.amount || 0,
+      unit_price: Math.round(item.customizations?.amount ?? 0),
       metadata: item.customizations || {},
     }))
 
