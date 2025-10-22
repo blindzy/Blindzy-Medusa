@@ -19,13 +19,13 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     const orm = await initORM()
     const em = orm.em.fork()
 
-    // 1️⃣ Load cart and its items
+    // 1️⃣ Load cart and items
     const cart = await em.findOne(Cart, { customer: customer_id }, { populate: ["items"] as any })
     if (!cart || !cart.items?.length) {
       return res.status(400).json({ message: "Cart is empty" })
     }
 
-    // 2️⃣ Load or fallback address
+    // 2️⃣ Get address (if exists)
     let addressForOrder: any
     if (address_id) {
       const foundAddress = await em.findOne(CustomerAddress, { id: address_id })
@@ -42,6 +42,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         }
       }
     }
+
     if (!addressForOrder) {
       addressForOrder = {
         first_name: "Customer",
@@ -56,21 +57,22 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     const orderModule: any = req.scope.resolve(Modules.ORDER)
     const paymentModule: any = req.scope.resolve(Modules.PAYMENT)
 
-    // 4️⃣ Determine currency
+    // 4️⃣ Currency detection
     const firstItemCurrency = cart.items?.[0]?.customizations?.currency ?? "AUD"
     const currencyMap: Record<string, string> = { "€": "eur", $: "usd", AUD: "aud", "£": "gbp" }
     const currency_code = currencyMap[firstItemCurrency] ?? "aud"
 
-    // 5️⃣ Build order items
+    // 5️⃣ Prepare order items
     const orderItems = cart.items.map((it: any) => ({
       title: it.customizations?.title ?? "Custom Product",
       quantity: it.quantity ?? 1,
-      unit_price:
-        typeof it.customizations?.amount === "number" ? it.customizations.amount : 0,
+      unit_price: typeof it.customizations?.amount === "number" ? it.customizations.amount : 0,
       metadata: it.customizations ?? {},
     }))
 
-    // 6️⃣ Create the order
+    const totalAmount = orderItems.reduce((sum, i) => sum + i.unit_price * i.quantity, 0)
+
+    // 6️⃣ Create order
     const [order] = await orderModule.createOrders([
       {
         customer_id,
@@ -86,9 +88,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       },
     ])
 
-    // 7️⃣ Create payment collection + session + payment
-    const totalAmount = orderItems.reduce((sum, i) => sum + i.unit_price * i.quantity, 0)
-
+    // 7️⃣ Create payment collection
     const paymentCollection = await paymentModule.createPaymentCollections({
       currency_code,
       amount: totalAmount,
@@ -96,31 +96,30 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       metadata: { linked_order_id: order.id },
     })
 
-    // ✅ FIX: Added `amount` to PaymentSession
-    const paymentSession = await paymentModule.createPaymentSessions({
-      payment_collection_id: paymentCollection.id,
-      provider_id: "manual",
-      currency_code,
-      amount: totalAmount, // 👈 required fix
-      data: { paid_via: "external_gateway" },
-    })
+    // ✅ 8️⃣ Create payment directly (skip session)
+    const [payment] = await paymentModule.createPayments([
+      {
+        payment_collection_id: paymentCollection.id,
+        currency_code,
+        amount: totalAmount,
+        provider_id: "manual",
+        data: { paid_via: "external_gateway" },
+      },
+    ])
 
-    const payment = await paymentModule.createPayments({
-      payment_collection_id: paymentCollection.id,
-      payment_session_id: paymentSession.id,
-      currency_code,
-      amount: totalAmount,
-      provider_id: "manual",
-      data: { paid_via: "external_gateway" },
-    })
+    // ✅ Ensure payment is created
+    if (!payment?.id) {
+      throw new Error("Payment not created properly")
+    }
 
+    // ✅ 9️⃣ Capture / mark as paid
     await paymentModule.capturePayment(payment.id)
     await orderModule.updateOrders({ id: order.id }, { payment_status: "paid" })
 
-    // 8️⃣ Clear cart after order creation
+    // 🔟 Clear cart
     await em.nativeDelete(CartItem, { cart: cart.id })
 
-    // 9️⃣ Retrieve the full order with payment details
+    // 11️⃣ Return full order
     const fullOrder = await orderModule.retrieveOrder(order.id)
 
     return res.status(201).json({
