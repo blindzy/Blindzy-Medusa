@@ -15,10 +15,10 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       return res.status(400).json({ message: "Missing required field: customer_id" })
     }
 
+    // ─── 1. Load cart ────────────────────────────────────────────────────────
     const orm = await initORM()
     const em = orm.em.fork()
 
-    // 1️⃣ Load cart and its items
     const cart = await em.findOne(
       Cart,
       { customer: customer_id },
@@ -29,70 +29,71 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       return res.status(400).json({ message: "Cart is empty" })
     }
 
-    // 2️⃣ Try to fetch address from your own address table if provided
-    let addressForOrder: any = undefined
+    // ─── 2. Resolve address ──────────────────────────────────────────────────
+    let addressForOrder: any = {
+      first_name: "Customer",
+      last_name: "",
+      address_1: "N/A",
+      city: "N/A",
+      country_code: "au",
+    }
+
     if (address_id) {
       try {
-        // Replace this entity name if your address entity is different
-        const AddressEntity = await import("../../../../entities/address.entity").then(
-          (m) => m.Address
-        )
-        const foundAddress = await em.findOne(AddressEntity, { id: address_id })
-        if (foundAddress) {
+        const { Address: AddressEntity } = await import("../../../../entities/address.entity")
+        const found = await em.findOne(AddressEntity, { id: address_id })
+        if (found) {
           addressForOrder = {
-            first_name: foundAddress.first_name ?? "Customer",
-            last_name: foundAddress.last_name ?? "",
-            address_1: foundAddress.address_1 ?? "",
-            address_2: foundAddress.address_2 ?? "",
-            city: foundAddress.city ?? "",
-            postal_code: foundAddress.postal_code ?? "",
-            country_code: (foundAddress.country_code ?? "AU").toLowerCase(),
-            phone: foundAddress.phone ?? "",
+            first_name: found.first_name ?? "Customer",
+            last_name: found.last_name ?? "",
+            address_1: found.address_1 ?? "N/A",
+            address_2: found.address_2 ?? "",
+            city: found.city ?? "N/A",
+            postal_code: found.postal_code ?? "",
+            country_code: (found.country_code ?? "au").toLowerCase(),
+            phone: found.phone ?? "",
           }
         }
       } catch (err) {
-        console.warn("⚠️ Address entity not found or failed to load:", err)
+        console.warn("⚠️ Could not load address entity:", err)
       }
     }
 
-    // 3️⃣ Fallback if address not found
-    if (!addressForOrder) {
-      addressForOrder = {
-        first_name: "Customer",
-        last_name: "",
-        address_1: "N/A",
-        city: "N/A",
-        country_code: "au",
-      }
-    }
-
-    // 4️⃣ Resolve modules
+    // ─── 3. Resolve modules ──────────────────────────────────────────────────
     const orderModule: any = req.scope.resolve(Modules.ORDER)
+    const paymentModule: any = req.scope.resolve(Modules.PAYMENT)
+    const remoteLink: any = req.scope.resolve("remoteLink")
 
-    // 5️⃣ Determine currency from cart’s first item (fallback to AUD)
-    const firstItemCurrency = cart.items?.[0]?.customizations?.currency ?? "AUD"
-    const currencyMap: Record<string, string> = { "€": "eur", $: "usd", AUD: "aud", "£": "gbp" }
-    const currency_code = currencyMap[firstItemCurrency] ?? "aud"
+    // ─── 4. Prepare items & currency ─────────────────────────────────────────
+    const currencyMap: Record<string, string> = {
+      "€": "eur",
+      "$": "usd",
+      "A$": "aud",
+      AUD: "aud",
+      "£": "gbp",
+    }
+    const rawCurrency = cart.items?.[0]?.customizations?.currency ?? "AUD"
+    const currency_code = currencyMap[rawCurrency] ?? "aud"
 
-    // 6️⃣ Prepare order items from cart items
     const orderItems = cart.items.map((it: any) => ({
       title: it.customizations?.title ?? "Custom Product",
       quantity: it.quantity ?? 1,
       unit_price:
-        typeof it.customizations?.amount === "number"
-          ? it.customizations.amount
-          : 0,
+        typeof it.customizations?.amount === "number" ? it.customizations.amount : 0,
       metadata: it.customizations ?? {},
     }))
 
-    // 7️⃣ Create the order directly marked as PAID
+    const totalAmount = orderItems.reduce(
+      (sum: number, item: any) => sum + item.unit_price * item.quantity,
+      0
+    )
+
+    // ─── 5. Create the order (pending) ───────────────────────────────────────
     const [order] = await orderModule.createOrders([
       {
         customer_id,
         email: cart.email ?? "guest@example.com",
-        status: "completed",
-        fulfillment_status: "not_fulfilled",
-        payment_status: "paid", // ✅ Directly mark as paid
+        status: "pending",
         currency_code,
         items: orderItems,
         shipping_address: addressForOrder,
@@ -101,11 +102,53 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       },
     ])
 
-    // 8️⃣ Clear cart after successful order
+    // ─── 6. Create & link a payment collection ───────────────────────────────
+    const paymentCollection = await paymentModule.createPaymentCollections({
+      currency_code,
+      amount: totalAmount,
+    })
+
+    await remoteLink.create({
+      [Modules.ORDER]: { order_id: order.id },
+      [Modules.PAYMENT]: { payment_collection_id: paymentCollection.id },
+    })
+
+    // ─── 7. Create a payment session (manual/system provider) ────────────────
+    const paymentSession = await paymentModule.createPaymentSession(
+      paymentCollection.id,
+      {
+        provider_id: "pp_system_default",
+        currency_code,
+        amount: totalAmount,
+        data: {},
+      }
+    )
+
+    // ─── 8. Authorize the session ────────────────────────────────────────────────
+    await paymentModule.authorizePaymentSession(paymentSession.id, {})
+
+    // ─── 9. Fetch the payment directly (don't trust authorizedSession.payment_id) ─
+    const [payment] = await paymentModule.listPayments({
+      payment_session_id: paymentSession.id,
+    })
+
+    if (!payment?.id) {
+      throw new Error("Payment not found after authorization")
+    }
+
+    // ─── 10. Capture the payment ──────────────────────────────────────────────────
+    await paymentModule.capturePayment({
+      payment_id: payment.id,
+      amount: totalAmount,
+    })
+    
+    // ─── 11. Clear cart ───────────────────────────────────────────────────────
     await em.nativeDelete(CartItem, { cart: cart.id })
 
-    // 9️⃣ Retrieve full order to include address/payment info
-    const fullOrder = await orderModule.retrieveOrder(order.id)
+    // ─── 12. Return full order ────────────────────────────────────────────────
+    const fullOrder = await orderModule.retrieveOrder(order.id, {
+      relations: ["items", "shipping_address", "billing_address"],
+    })
 
     return res.status(201).json({
       message: "✅ Order placed successfully and marked as paid",

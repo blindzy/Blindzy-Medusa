@@ -1,4 +1,4 @@
-import { Request, Response } from "express"
+import {MedusaRequest, MedusaResponse} from "@medusajs/framework/http"
 import { Resend } from "resend"
 import { v4 as uuidv4 } from "uuid"
 import { initORM } from "../../../../utils/orm"
@@ -6,9 +6,8 @@ import { Otp } from "../../../../entities/otp.entity"
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
-export async function POST(req: Request, res: Response) {
+export async function POST(req: MedusaRequest, res: MedusaResponse) {
   const { email } = req.body
-``
   if (!email) {
     return res.status(400).json({ error: "Email is required" })
   }
@@ -28,12 +27,16 @@ export async function POST(req: Request, res: Response) {
     await em.persistAndFlush(otpEntity)
 
     // Send email via Resend
-    await resend.emails.send({
+    const { data, error } = await resend.emails.send({
       from: "Blindzy <no-reply@ezyiah.com.au>",
       to: [email],
       subject: "Password Reset Code",
       html: `<p>Your OTP is: <strong>${otpCode}</strong>. It is valid for 10 minutes.</p>`,
     })
+
+    if(error) {
+      console.log(error)
+    }
 
     return res.status(200).json({ message: "OTP sent successfully." })
   } catch (error: any) {

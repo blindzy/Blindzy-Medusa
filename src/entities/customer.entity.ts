@@ -18,11 +18,8 @@ export class Customer {
     @Property({ nullable: true })
     phone?: string
 
-    @Property({ nullable: true, unique: true })
+    @Property({ nullable: true })
     username?: string
-
-    @Property({ default: false })
-    has_account: boolean = true
 
     @Property({ nullable: true })
     password_hash?: string
@@ -37,6 +34,9 @@ export class Customer {
     company_name?: string
   
     @Property({ nullable: true })
-    pfp_url?: string    
+    pfp_url?: string   
+    
+    @Property({ nullable: true, type: 'json' })
+    metadata?: Record<string, any>
 
 }
