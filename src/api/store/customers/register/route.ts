@@ -1,8 +1,9 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework"
+import { generateOTP, storeOTP } from "../../../../utils/otp"
 import { hashSync } from "bcryptjs"
 import { Customer } from '../../../../entities/customer.entity'
 import { initORM } from "../../../../utils/orm"
-
+import { sendOTPEmail } from "../../../../utils/resend-client"
 export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
     try {
         const {
@@ -19,7 +20,7 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
         
         const existing = await em.findOne(Customer, { $or: [{ email: email }, { username: username }] })
         if (existing) {
-            throw new Error("Email or username already exists")
+            return res.status(400).json({ error: "Email or username already in use" })
         }
 
 
@@ -30,14 +31,21 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
             phone: phone,
             username: username,
             password_hash: hashSync(password, 10),
-            metadata: { phone, username },
+            metadata: { phone, username, email_verified: false },
+            created_at: new Date(),
+            updated_at: new Date(),
         })
 
         await em.persistAndFlush(customer)
         await orm.close()
 
+        const otp = generateOTP();
+        await storeOTP(email, otp)
+        await sendOTPEmail(email, otp)
+
+
         return res.status(201).json({
-            message: "Customer created successfully",
+            message: "Customer created successfully, Please verify your email",
             customer,
         })
     } catch (error: any) {

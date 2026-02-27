@@ -1,15 +1,11 @@
 import { loadEnv, defineConfig } from "@medusajs/framework/utils"
+import { Modules, ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
 loadEnv(process.env.NODE_ENV || "development", process.cwd())
 
 export default defineConfig({
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
-    databaseExtra: {
-      ssl: {
-        rejectUnauthorized: false,
-      },
-    },
     // 👇 Add this block to control connection pooling
     databaseDriverOptions: {
       pool: {
@@ -30,12 +26,47 @@ export default defineConfig({
     databaseLogging: true,
   },
 
-  modules: {
-    customer: {
-      resolve: "@medusajs/customer",
-      options: {},
+  modules: [
+    {
+      resolve: "@medusajs/medusa/payment",
+      options: {
+        providers: [
+          {
+            resolve: "@medusajs/medusa/payment-stripe",
+            id: "stripe",
+            options: {
+              apiKey: process.env.STRIPE_API_KEY,
+              webhookSecret: "whsec_c40d1036cd8debc2db206a7c133f391642fc25673aab1a6ab686191c6c07de1f"
+            },
+          },
+        ],
+      },
     },
-  },
+    {
+      resolve: "@medusajs/medusa/auth",
+      dependencies: [Modules.CACHE, ContainerRegistrationKeys.LOGGER],
+      options: {
+        providers: [
+          // other providers...
+          {
+            resolve: "@medusajs/medusa/auth-emailpass",
+            id: "emailpass",
+          },
+          {
+            resolve: "@medusajs/medusa/auth-google",
+            id: "google",
+            options: {
+              clientId: process.env.GOOGLE_CLIENT_ID,
+              clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+              callbackUrl: process.env.GOOGLE_CALLBACK_URL,
+            },
+          },
+        ],
+      },
+    },
+
+
+  ],
 
   admin: {
     vite: () => {
