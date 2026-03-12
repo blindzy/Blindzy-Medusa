@@ -12,15 +12,14 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
             email,
             password,
             phone,
-            username
         } = req.body
         
         const orm = await initORM()
         const em = orm.em.fork()
         
-        const existing = await em.findOne(Customer, { $or: [{ email: email }, { username: username }] })
+        const existing = await em.findOne(Customer, { email: email })
         if (existing) {
-            return res.status(400).json({ error: "Email or username already in use" })
+            return res.status(400).json({ error: "Email already in use" })
         }
 
 
@@ -29,9 +28,8 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
             last_name,
             email,
             phone: phone,
-            username: username,
             password_hash: hashSync(password, 10),
-            metadata: { phone, username, email_verified: false },
+            metadata: { phone, email_verified: false },
             created_at: new Date(),
             updated_at: new Date(),
         })

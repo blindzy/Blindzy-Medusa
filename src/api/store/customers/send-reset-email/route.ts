@@ -28,7 +28,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
     // Send email via Resend
     const { data, error } = await resend.emails.send({
-      from: "Blindzy <no-reply@ezyiah.com.au>",
+      from: "Blindzy <no-reply@blindzy.com>",
       to: [email],
       subject: "Password Reset Code",
       html: `<p>Your OTP is: <strong>${otpCode}</strong>. It is valid for 10 minutes.</p>`,

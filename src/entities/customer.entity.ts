@@ -13,9 +13,6 @@ export class Customer {
     phone?: string
 
     @Property({ nullable: true })
-    username?: string
-
-    @Property({ nullable: true })
     password_hash?: string
 
     @Property({ onCreate: () => new Date() })
