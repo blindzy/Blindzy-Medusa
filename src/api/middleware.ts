@@ -14,7 +14,7 @@ export default defineMiddlewares({
   routes: [
     {
       matcher: "/store/upload/upload-pfp",
-      method: "POST",
+      methods: ["POST", "PATCH"],
       middlewares: [
         // Override the default 100kb limit for this route only
         bodyParser.json({ limit: "10mb" }),
