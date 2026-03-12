@@ -23,7 +23,6 @@ export async function PATCH(req: MedusaRequest, res: MedusaResponse) {
       "first_name",
       "last_name",
       "email",
-      "username",
       "phone",
       "company_name",
       "pfp_url",

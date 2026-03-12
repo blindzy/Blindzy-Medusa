@@ -5,13 +5,7 @@ import { v4 as uuid } from 'uuid'
 export class Customer {
     @PrimaryKey({ type: 'uuid' })
     id: string = uuid()
-
-    @Property()
-    first_name: string
-
-    @Property()
-    last_name: string
-
+    
     @Property()
     email: string
 

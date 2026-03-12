@@ -15,11 +15,11 @@ export class CustomerAddress {
   @Property({ nullable: true })
   company?: string
 
-  @Property()
-  first_name: string
+  @Property({ nullable: true })
+  first_name?: string
 
-  @Property()
-  last_name: string
+  @Property({ nullable: true })
+  last_name?: string
 
   @Property()
   address_1: string

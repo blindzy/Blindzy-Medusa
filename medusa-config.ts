@@ -72,7 +72,7 @@ export default defineConfig({
     vite: () => {
       return {
         server: {
-          allowedHosts: ["api.blindzy.com"],
+          allowedHosts: ["api.blindzy.com", "http://localhost:9000"],
         },
       }
     },
