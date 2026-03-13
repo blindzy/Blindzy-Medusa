@@ -1,7 +1,7 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import Stripe from "stripe";
 
-const stripe = new Stripe("sk_test_51ReVtpEyZ8uIZ3ONiCUsFFskvWMXSfx2XeCRyZ2nW5kZxOJZCTTqIVZC3H7UsZhJeg6Qf3r3TIuZCDZcvRwHb9PN00hiA5k3fz");
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
   try {
