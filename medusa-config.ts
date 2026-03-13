@@ -73,7 +73,7 @@ export default defineConfig({
             id: "local",
             options: {
               upload_dir: "static",
-              backend_url: process.env.MEDUSA_BACKEND_URL!,
+              backend_url: process.env.MEDUSA_UPLOAD_URL!,
             },
           },
         ],
