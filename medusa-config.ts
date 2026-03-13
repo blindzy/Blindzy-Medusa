@@ -16,7 +16,6 @@ export default defineConfig({
     },
     cookieOptions: {
       sameSite: "none",
-      secure: true,
     },
 
     http: {

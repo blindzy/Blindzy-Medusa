@@ -9,7 +9,7 @@ export const sendOTPEmail = async (email: string, otp: string): Promise<void> =>
     console.log("Sending OTP to:", email)
 
   const { data, error } = await resend.emails.send({
-    from: process.env.EMAIL_FROM || "onboarding@blindzy.com",
+    from: "onboarding@blindzy.com",
     to: email,
     subject: "Verify your email",
     html: `
