@@ -34,6 +34,7 @@
     "@medusajs/customer": "^2.8.8",
     "@medusajs/dashboard": "2.8.8",
     "@medusajs/draft-order": "^2.13.3",
+    "@medusajs/file-local": "^2.13.3",
     "@medusajs/framework": "^2.8.8",
     "@medusajs/medusa": "^2.8.8",
     "@medusajs/workflows-sdk": "^2.8.8",
