@@ -16,7 +16,7 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
     const paymentIntent = await stripe.paymentIntents.create({
       amount, // Amount in cents
       currency: 'aud',
-      payment_method_types: ['card', 'link'],
+      payment_method_types: ['card'],
       receipt_email: email,
       metadata: {
         phone: phone,
