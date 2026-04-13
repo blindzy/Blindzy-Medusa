@@ -141,7 +141,9 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       payment_id: payment.id,
       amount: totalAmount,
     })
-    
+
+    await paymentModule.completePaymentCollections(paymentCollection.id)
+
     // ─── 11. Clear cart ───────────────────────────────────────────────────────
     await em.nativeDelete(CartItem, { cart: cart.id })
 

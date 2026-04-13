@@ -75,54 +75,38 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 }
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
-    try {
-      const { email } = req.query
-  
-      if (!email || typeof email !== "string") {
-        return res.status(400).json({ message: "Email query param is required" })
-      }
-  
-      const orm = await initORM()
-      const em = orm.em.fork()
+  try {
+    const { email } = req.query
 
-      // Ensure user_orders table exists
-      try {
-        const connection = em.getConnection()
-        await connection.execute(`
-          CREATE TABLE IF NOT EXISTS user_orders (
-            id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-            customer_id TEXT NOT NULL,
-            card_id TEXT NOT NULL,
-            address_id TEXT NOT NULL,
-            items JSONB NOT NULL,
-            total_price NUMERIC,
-            status TEXT DEFAULT 'pending',
-            created_at TIMESTAMPTZ DEFAULT now(),
-            updated_at TIMESTAMPTZ DEFAULT now()
-          );
-        `)
-        console.log('user_orders table checked/created')
-      } catch (error) {
-        console.log('Table creation error (might already exist):', error)
-      }
-  
-      const customer = await em.findOne(Customer, { email })
-  
-      if (!customer) {
-        return res.status(404).json({ message: "Customer not found" })
-      }
-  
-      const orders = await em.getConnection().execute(
-        `SELECT * FROM user_orders WHERE customer_id = ? ORDER BY created_at DESC`,
-        [customer.id]
-      )
-  
-      return res.status(200).json({
-        message: "Orders fetched successfully",
-        orders
-      })
-    } catch (err) {
-      console.error("Error fetching orders:", err)
-      return res.status(500).json({ message: "Internal server error" })
+    if (!email || typeof email !== "string") {
+      return res.status(400).json({ message: "Email query param is required" })
     }
+
+    const orm = await initORM()
+    const em = orm.em.fork()
+
+    const customer = await em.findOne(Customer, { email })
+
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" })
+    }
+
+    const orderModule: any = req.scope.resolve("order")
+
+    const orders = await orderModule.listOrders(
+      { customer_id: customer.id },
+      {
+        relations: ["items", "shipping_address"],
+        order: { created_at: "DESC" },
+      }
+    )
+
+    return res.status(200).json({
+      message: "Orders fetched successfully",
+      orders,
+    })
+  } catch (err) {
+    console.error("Error fetching orders:", err)
+    return res.status(500).json({ message: "Internal server error" })
   }
+}
