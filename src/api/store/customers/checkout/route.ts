@@ -8,12 +8,18 @@ export const config = { api: { bodyParser: true } }
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
   try {
-    const body = req.body as { customer_id?: string; address_id?: string }
-    const { customer_id, address_id } = body
+    const body = req.body as {
+      customer_id?: string
+      address?: any
+    }
+
+    const { customer_id, address } = body
 
     if (!customer_id) {
       return res.status(400).json({ message: "Missing required field: customer_id" })
     }
+
+
 
     // ─── 1. Load cart ────────────────────────────────────────────────────────
     const orm = await initORM()
@@ -30,35 +36,43 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     }
 
     // ─── 2. Resolve address ──────────────────────────────────────────────────
-    let addressForOrder: any = {
+    let addressForOrder = {
       first_name: "Customer",
       last_name: "",
       address_1: "N/A",
+      address_2: "",
       city: "N/A",
+      postal_code: "",
       country_code: "au",
+      phone: "",
     }
 
-    if (address_id) {
-      try {
-        const { Address: AddressEntity } = await import("../../../../entities/address.entity")
-        const found = await em.findOne(AddressEntity, { id: address_id })
-        if (found) {
-          addressForOrder = {
-            first_name: found.first_name ?? "Customer",
-            last_name: found.last_name ?? "",
-            address_1: found.address_1 ?? "N/A",
-            address_2: found.address_2 ?? "",
-            city: found.city ?? "N/A",
-            postal_code: found.postal_code ?? "",
-            country_code: (found.country_code ?? "au").toLowerCase(),
-            phone: found.phone ?? "",
-          }
-        }
-      } catch (err) {
-        console.warn("⚠️ Could not load address entity:", err)
+    const normalizeCountry = (code?: string) => {
+      if (!code) return "au"
+
+      const map: Record<string, string> = {
+        AUS: "au",
+        USA: "us",
+        GBR: "gb",
+        CAN: "ca",
+        NZL: "nz",
+      }
+
+      return (map[code] ?? code).toLowerCase()
+    }
+
+    if (address) {
+      addressForOrder = {
+        first_name: address.first_name ?? "Customer",
+        last_name: address.last_name ?? "",
+        address_1: address.address_1 ?? "N/A",
+        address_2: address.address_2 ?? "",
+        city: address.city ?? "N/A",
+        postal_code: address.postal_code ?? "",
+        country_code: normalizeCountry(address.country_code),
+        phone: address.phone ?? "",
       }
     }
-
     // ─── 3. Resolve modules ──────────────────────────────────────────────────
     const orderModule: any = req.scope.resolve(Modules.ORDER)
     const paymentModule: any = req.scope.resolve(Modules.PAYMENT)
