@@ -1,8 +1,13 @@
+//src/api/store/customers/checkout/route.ts
+
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { initORM } from "../../../../utils/orm"
 import { Cart } from "../../../../entities/cart.entity"
 import { CartItem } from "../../../../entities/cart-item.entity"
 import { Modules } from "@medusajs/framework/utils"
+import { Resend } from "resend"
+
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 export const config = { api: { bodyParser: true } }
 
@@ -18,8 +23,6 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     if (!customer_id) {
       return res.status(400).json({ message: "Missing required field: customer_id" })
     }
-
-
 
     // ─── 1. Load cart ────────────────────────────────────────────────────────
     const orm = await initORM()
@@ -49,7 +52,6 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
     const normalizeCountry = (code?: string) => {
       if (!code) return "au"
-
       const map: Record<string, string> = {
         AUS: "au",
         USA: "us",
@@ -57,7 +59,6 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         CAN: "ca",
         NZL: "nz",
       }
-
       return (map[code] ?? code).toLowerCase()
     }
 
@@ -73,6 +74,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         phone: address.phone ?? "",
       }
     }
+
     // ─── 3. Resolve modules ──────────────────────────────────────────────────
     const orderModule: any = req.scope.resolve(Modules.ORDER)
     const paymentModule: any = req.scope.resolve(Modules.PAYMENT)
@@ -138,10 +140,10 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       }
     )
 
-    // ─── 8. Authorize the session ────────────────────────────────────────────────
+    // ─── 8. Authorize the session ────────────────────────────────────────────
     await paymentModule.authorizePaymentSession(paymentSession.id, {})
 
-    // ─── 9. Fetch the payment directly (don't trust authorizedSession.payment_id) ─
+    // ─── 9. Fetch the payment ────────────────────────────────────────────────
     const [payment] = await paymentModule.listPayments({
       payment_session_id: paymentSession.id,
     })
@@ -150,7 +152,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       throw new Error("Payment not found after authorization")
     }
 
-    // ─── 10. Capture the payment ──────────────────────────────────────────────────
+    // ─── 10. Capture the payment ─────────────────────────────────────────────
     await paymentModule.capturePayment({
       payment_id: payment.id,
       amount: totalAmount,
@@ -164,6 +166,83 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     // ─── 12. Return full order ────────────────────────────────────────────────
     const fullOrder = await orderModule.retrieveOrder(order.id, {
       relations: ["items", "shipping_address", "billing_address"],
+    })
+
+    // ─── 13. Send admin notification email ───────────────────────────────────
+    const addr = addressForOrder
+    const fullName = `${addr.first_name} ${addr.last_name}`.trim()
+    const formattedAddress = [
+      addr.address_1,
+      addr.address_2,
+      addr.city,
+      addr.postal_code,
+      addr.country_code.toUpperCase(),
+    ]
+      .filter(Boolean)
+      .join(", ")
+
+    const itemsTableRows = orderItems
+      .map(
+        (item) => `
+        <tr>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb;">${item.title}</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
+          <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">
+            ${rawCurrency} ${(item.unit_price * item.quantity).toFixed(2)}
+          </td>
+        </tr>`
+      )
+      .join("")
+
+    await resend.emails.send({
+      from: "onboarding@blindzy.com",
+      to: "saifkhan501721@gmail.com",
+      subject: `🛒 New Order #${order.id} — ${fullName}`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #111;">
+          <h2 style="background: #111; color: #fff; padding: 16px 20px; border-radius: 6px 6px 0 0; margin: 0;">
+            New Order Received
+          </h2>
+
+          <div style="border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 6px 6px; padding: 24px;">
+
+            <p style="margin: 0 0 4px;"><strong>Order ID:</strong> ${order.id}</p>
+            <p style="margin: 0 0 4px;"><strong>Customer ID:</strong> ${customer_id}</p>
+            <p style="margin: 0 0 4px;"><strong>Email:</strong> ${cart.email ?? "N/A"}</p>
+            <p style="margin: 0 0 20px;"><strong>Phone:</strong> ${addr.phone || "N/A"}</p>
+
+            <h3 style="margin: 0 0 8px; border-bottom: 2px solid #e5e7eb; padding-bottom: 6px;">
+              Delivery Address
+            </h3>
+            <p style="margin: 0 0 20px;">${fullName}<br/>${formattedAddress}</p>
+
+            <h3 style="margin: 0 0 8px; border-bottom: 2px solid #e5e7eb; padding-bottom: 6px;">
+              Items Ordered
+            </h3>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
+              <thead>
+                <tr style="background: #f9fafb;">
+                  <th style="padding: 8px 12px; text-align: left;">Product</th>
+                  <th style="padding: 8px 12px; text-align: center;">Qty</th>
+                  <th style="padding: 8px 12px; text-align: right;">Subtotal</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${itemsTableRows}
+              </tbody>
+            </table>
+
+            <p style="text-align: right; font-size: 16px; font-weight: bold; margin: 0;">
+              Total: ${rawCurrency} ${(totalAmount).toFixed(2)}
+            </p>
+
+          </div>
+
+          <p style="font-size: 12px; color: #9ca3af; margin-top: 16px; text-align: center;">
+            Blindzy Admin Notification · Order placed at ${new Date().toLocaleString("en-AU", { timeZone: "Australia/Sydney" })}
+          </p>
+        </div>
+      `,
     })
 
     return res.status(201).json({
