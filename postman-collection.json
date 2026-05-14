@@ -41,7 +41,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"email\": \"admin@blindzy.com\",\n  \"password\": \"admin123456\",\n  \"first_name\": \"Admin\",\n  \"last_name\": \"User\"\n}"
+                  "raw": "{\n  \"email\": \"blindzy11@gmail.com\",\n  \"password\": \"admin123456\",\n  \"first_name\": \"Admin\",\n  \"last_name\": \"User\"\n}"
                 },
                 "url": {
                   "raw": "{{baseUrl}}/admin/users",
@@ -79,7 +79,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"email\": \"admin@blindzy.com\",\n  \"password\": \"admin123456\"\n}"
+                  "raw": "{\n  \"email\": \"blindzy11@gmail.com\",\n  \"password\": \"admin123456\"\n}"
                 },
                 "url": {
                   "raw": "{{baseUrl}}/admin/auth",

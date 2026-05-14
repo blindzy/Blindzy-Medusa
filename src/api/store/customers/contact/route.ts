@@ -27,7 +27,7 @@ ${message}
 
     const response = await resend.emails.send({
       from: "onboarding@blindzy.com",  // Required for test accounts
-      to: "admin@blindzy.com",  // Must be your email (verified)
+      to: "blindzy11@gmail.com",  // Must be your email (verified)
       reply_to: email,
       subject,
       text,
