@@ -7,6 +7,13 @@ import { CartItem } from "../../../../entities/cart-item.entity"
 import { Modules } from "@medusajs/framework/utils"
 import { Resend } from "resend"
 
+//these are medusa defined keys
+const SHIPPING_OPTION = "so_01KRN523S1GE6Y617DTM3CKTDM";
+const REGION_ID = "reg_01KKGN42K937ZJAYC201CKP0H2";
+const SALES_CHANNEL_ID = "sc_01KJYRF344TWVR9CVHJEY2M48Y";
+const SHIPPING_NAME = "Shipping";
+const LOCATION_ID = "sloc_01KRN4YRKK486X6ZGWEJVMN8R1";
+
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 export const config = { api: { bodyParser: true } }
@@ -94,8 +101,9 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     const orderItems = cart.items.map((it: any) => ({
       title: it.customizations?.title ?? "Custom Product",
       quantity: it.quantity ?? 1,
-      unit_price:
-        typeof it.customizations?.amount === "number" ? it.customizations.amount : 0,
+      unit_price: typeof it.customizations?.amount === "number" ? it.customizations.amount : 0,
+      variant_id: it.variant_id ?? undefined,
+      product_id: it.product_id ?? undefined,
       metadata: it.customizations ?? {},
     }))
 
@@ -111,12 +119,46 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         email: cart.email ?? "guest@example.com",
         status: "pending",
         currency_code,
+        region_id: REGION_ID,
+        sales_channel_id: SALES_CHANNEL_ID,
         items: orderItems,
         shipping_address: addressForOrder,
         billing_address: addressForOrder,
+        shipping_methods: [
+          {
+            name: SHIPPING_NAME,
+            amount: 0,
+          }
+        ],
         metadata: { custom_checkout: true },
       },
     ])
+
+    // 5b reserve qty for inventory
+
+    // ─── 5b. Create stock reservations ───────────────────────────────────────
+    const inventoryModule: any = req.scope.resolve(Modules.INVENTORY)
+    const query: any = req.scope.resolve("query")
+
+    for (const item of order.items) {
+      if (!item.variant_id) continue
+
+      const { data: variants } = await query.graph({
+        entity: "variant",
+        fields: ["inventory_items.*"],
+        filters: { id: item.variant_id },
+      })
+
+      const inventoryItemId = variants[0]?.inventory_items?.[0]?.inventory_item_id
+      if (!inventoryItemId) continue
+
+      await inventoryModule.createReservationItems([{
+        line_item_id: item.id,
+        inventory_item_id: inventoryItemId,
+        location_id: LOCATION_ID,
+        quantity: item.quantity,
+      }])
+    }
 
     // ─── 6. Create & link a payment collection ───────────────────────────────
     const paymentCollection = await paymentModule.createPaymentCollections({
@@ -196,7 +238,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
     await resend.emails.send({
       from: "onboarding@blindzy.com",
-      to: "blindzy11@gmail.com",
+      to: "saifkhan501721@gmail.com",
       subject: `🛒 New Order #${order.id} — ${fullName}`,
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #111;">

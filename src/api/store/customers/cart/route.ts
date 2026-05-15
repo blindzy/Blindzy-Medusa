@@ -1,3 +1,5 @@
+//src/api/store/customers/cart
+
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
 import { Request, Response } from "express"
 import { EntityManager } from "@mikro-orm/core"
@@ -6,77 +8,74 @@ import { CartItem } from "../../../../entities/cart-item.entity"
 import { Customer } from "../../../../entities/customer.entity"
 import { initORM } from "../../../../utils/orm"
 
-export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
-  const { email, product_id, quantity, customizations } = req.body
-  console.log('Cart POST request:', { email, product_id, quantity, customizations })
-  
-  const orm = await initORM()
-  const em = orm.em.fork()
+const REGION_ID = "reg_01KKGN42K937ZJAYC201CKP0H2";
+const SALES_CHANNEL_ID = "sc_01KJYRF344TWVR9CVHJEY2M48Y";
 
-  if (!email || !product_id || !quantity) {
+
+export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
+  const { email, product_id, variant_id, quantity, customizations } = req.body
+
+  if (!email || !product_id || !variant_id || !quantity) {
     return res.status(400).json({ message: "Missing required fields" })
   }
 
+  const orm = await initORM()
+  const em = orm.em.fork()
+
+  // 1. Find customer
+  const customer = await em.findOne(Customer, { email })
+  if (!customer) {
+    return res.status(404).json({ message: "Customer not found" })
+  }
+
+  // 2. Ensure table exists
   try {
-    // Ensure cart_item table exists - create it outside transaction
     const connection = em.getConnection()
     await connection.execute(`
       CREATE TABLE IF NOT EXISTS cart_item (
         id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
         cart_id TEXT NOT NULL,
         product_id TEXT NOT NULL,
+        variant_id TEXT,
         quantity INTEGER NOT NULL,
         customizations JSONB NOT NULL,
         created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT now(),
         updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT now()
       );
     `)
-    console.log('cart_item table checked/created')
   } catch (error) {
     console.log('Table creation error (might already exist):', error)
   }
 
-  // 1. Find customer by email
-  let customer = await em.findOne(Customer, { email })
-  if (!customer) {
-    return res.status(404).json({ message: "Customer not found. Please register first." })
-  }
-  console.log('Customer found:', customer.id)
-
-  // 2. Find or create cart
+  // 3. Find or create cart
   let cart = await em.findOne(Cart, { customer })
   if (!cart) {
     cart = em.create(Cart, {
-        email,
-        customer,
-        currency_code: 'USD',
-        created_at: new Date(),
-        updated_at: new Date(),
-      })
-      
+      email,
+      customer,
+      currency_code: 'aud',
+      created_at: new Date(),
+      updated_at: new Date(),
+    })
     await em.persistAndFlush(cart)
-    console.log('Cart created:', cart.id)
-  } else {
-    console.log('Cart found:', cart.id)
   }
 
-  // 2. Add product to cart
-  const cartItem = em.create(CartItem, {
+  // 4. Add item
+  em.create(CartItem, {
     cart,
     product_id,
+    variant_id,
     quantity,
     customizations,
     created_at: new Date(),
     updated_at: new Date(),
   })
-  
 
-  await em.persistAndFlush(cartItem)
+  await em.flush()
 
   return res.status(201).json({
     message: "Item added to cart",
     cart_id: cart.id,
-    item_id: cartItem.id,
   })
 }
 
@@ -116,6 +115,7 @@ export const GET = async (req: Request, res: Response) => {
       items: cart.items.get().map((item) => ({
         id: item.id,
         product_id: item.product_id,
+        variant_id: item.variant_id,   // add this
         quantity: item.quantity,
         customizations: item.customizations,
         created_at: item.created_at,

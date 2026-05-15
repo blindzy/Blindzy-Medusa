@@ -27,6 +27,9 @@ export class CartItem {
   product_id!: string;
 
   @Property()
+  variant_id!: string;
+
+  @Property()
   quantity!: number;
 
   @Property({ type: JsonType })
