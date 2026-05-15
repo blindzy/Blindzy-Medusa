@@ -91,15 +91,19 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
       return res.status(404).json({ message: "Customer not found" })
     }
 
-    const orderModule: any = req.scope.resolve("order")
+    const query: any = req.scope.resolve("query")
 
-    const orders = await orderModule.listOrders(
-      { customer_id: customer.id },
-      {
-        relations: ["items", "shipping_address"],
-        order: { created_at: "DESC" },
-      }
-    )
+    const { data: orders } = await query.graph({
+      entity: "order",
+      fields: [
+        "*",
+        "items.*",
+        "shipping_address.*",
+        "fulfillments.*",
+        "fulfillments.items.*",
+      ],
+      filters: { customer_id: customer.id },
+    })
 
     return res.status(200).json({
       message: "Orders fetched successfully",
