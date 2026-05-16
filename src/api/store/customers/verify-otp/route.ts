@@ -3,7 +3,7 @@ import { initORM } from "../../../../utils/orm";
 import { Otp } from "../../../../entities/otp.entity";
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
-  const { email, otp } = req.body;
+  const { email, otp } = req.body as any;
 
   if (!email || !otp) {
     return res.status(400).json({ error: "Email and OTP are required." });

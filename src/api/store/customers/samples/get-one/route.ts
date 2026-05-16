@@ -3,7 +3,7 @@ import { initORM } from "../../../../../utils/orm"
 import { Sample } from "../../../../../entities/sample.entity"
 
 export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
-  const { id } = req.query
+  const id = req.query.id as string
 
   const orm = await initORM()
   const em = orm.em.fork()

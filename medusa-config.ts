@@ -5,6 +5,7 @@ loadEnv(process.env.NODE_ENV || "development", process.cwd())
 
 export default defineConfig({
   projectConfig: {
+    workerMode: "shared",
     databaseUrl: process.env.DATABASE_URL,
     // 👇 Add this block to control connection pooling
     databaseDriverOptions: {
@@ -15,7 +16,8 @@ export default defineConfig({
       },
     },
     cookieOptions: {
-      sameSite: "none",
+      sameSite: process.env.NODE_ENV === "development" ? "lax" : "none",
+      secure: process.env.NODE_ENV !== "development",
     },
 
     http: {
@@ -82,7 +84,22 @@ export default defineConfig({
         ],
       },
     },
-
+    {
+      resolve: "@medusajs/medusa/notification",
+      options: {
+        providers: [
+          {
+            resolve: "./src/modules/resend",
+            id: "resend",
+            options: {
+              channels: ["email"],
+              api_key: process.env.RESEND_API_KEY,
+              from: process.env.EMAIL_FROM,
+            },
+          },
+        ],
+      },
+    },
   ],
 
   admin: {

@@ -12,7 +12,7 @@ export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
             email,
             password,
             phone,
-        } = req.body
+        } = req.body as any
         
         const orm = await initORM()
         const em = orm.em.fork()

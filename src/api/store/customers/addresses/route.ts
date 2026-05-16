@@ -15,7 +15,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       city,
       country_code,
       postal_code
-    } = req.body
+    } = req.body as any
 
     if (!customer_id || !email || !address_1 || !city || !country_code || !postal_code) {
       return res.status(400).json({ message: "Missing required fields" })

@@ -13,7 +13,7 @@ const SALES_CHANNEL_ID = "sc_01KJYRF344TWVR9CVHJEY2M48Y";
 
 
 export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
-  const { email, product_id, variant_id, quantity, customizations } = req.body
+  const { email, product_id, variant_id, quantity, customizations } = req.body as any
 
   if (!email || !product_id || !variant_id || !quantity) {
     return res.status(400).json({ message: "Missing required fields" })

@@ -5,7 +5,7 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
   try {
-    const { name, email, phone, enquiry, number, message } = req.body
+    const { name, email, phone, enquiry, number, message } = req.body as any
 
     if (!name || !email || !message) {
       return res.status(400).json({
@@ -28,7 +28,7 @@ ${message}
     const response = await resend.emails.send({
       from: "onboarding@blindzy.com",  // Required for test accounts
       to: "blindzy11@gmail.com",  // Must be your email (verified)
-      reply_to: email,
+      replyTo: email,
       subject,
       text,
     })

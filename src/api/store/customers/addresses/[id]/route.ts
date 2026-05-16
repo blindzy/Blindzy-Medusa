@@ -27,7 +27,7 @@ export async function PUT(req: MedusaRequest, res: MedusaResponse) {
       house_type,
       is_default_shipping,
       is_default_billing
-    } = req.body
+    } = req.body as any
 
     const orm = await initORM()
     const em = orm.em.fork()

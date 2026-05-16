@@ -1,4 +1,4 @@
-import { MedusaRequest, MedusaResponse } from "@medusajs/medusa"
+import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { initORM } from "../../../../../utils/orm"
 import { Card } from "../../../../../entities/card.entity"
 
@@ -44,7 +44,7 @@ export async function PUT(req: MedusaRequest, res: MedusaResponse) {
         card_name,
         expiry_date,
         security_code,
-      } = req.body
+      } = req.body as any
   
       const orm = await initORM()
       const em = orm.em.fork()

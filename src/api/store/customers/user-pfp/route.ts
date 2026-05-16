@@ -19,9 +19,12 @@ export async function PATCH(req: MedusaRequest, res: MedusaResponse) {
     }
 
     try {
-      const email = req.body?.email
-      const pfpFile = req.file // multer adds this
+      const { email } = req.body as { email?: string }
+      const pfpFile = (req as any).file
       const pfpPath = pfpFile?.path
+
+
+
 
       if (!email || !pfpPath) {
         return res.status(400).json({ message: "Missing email or pfp_url" })

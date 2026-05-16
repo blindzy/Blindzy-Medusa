@@ -4,7 +4,7 @@ import { Customer } from "../../../../entities/customer.entity"
 
 export async function PATCH(req: MedusaRequest, res: MedusaResponse) {
   try {
-    const { id, ...updates } = req.body
+    const { id, ...updates } = req.body as any
 
     if (!id) {
       return res.status(400).json({ error: "Customer ID is required." })
@@ -44,7 +44,7 @@ export async function PATCH(req: MedusaRequest, res: MedusaResponse) {
         last_name: customer.last_name,
         email: customer.email,
         phone: customer.phone,
-        username: customer.username,
+        username: customer.metadata?.username,
         company_name: customer.company_name,
         pfp_url: customer.pfp_url,
       },

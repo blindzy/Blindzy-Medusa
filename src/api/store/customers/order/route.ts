@@ -11,7 +11,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       address_id,
       items,
       total_price
-    } = req.body
+    } = req.body as any
 
     if (!customer_id || !card_id || !address_id || !Array.isArray(items)) {
       return res.status(400).json({ message: "Missing required fields" })

@@ -5,7 +5,7 @@ import { verifyOTP } from "../../../../utils/otp"
 
 export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
   try {
-    const { email, otp } = req.body
+    const { email, otp } = req.body as any
 
     if (!email || !otp) {
       return res.status(400).json({ error: "Email and OTP are required" })

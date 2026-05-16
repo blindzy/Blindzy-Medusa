@@ -6,7 +6,7 @@ import { sendOTPEmail } from "../../../../utils/resend-client"
 
 export const POST = async (req: MedusaRequest, res: MedusaResponse) => {
   try {
-    const { email } = req.body
+    const { email } = req.body as any
 
     if (!email) {
       return res.status(400).json({ error: "Email is required" })

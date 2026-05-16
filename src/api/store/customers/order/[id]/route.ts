@@ -1,4 +1,4 @@
-import { MedusaRequest, MedusaResponse } from "@medusajs/medusa"
+import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { initORM } from "../../../../../utils/orm"
 import { UserOrder } from "../../../../../entities/user-order.entity"
 import { Card } from "../../../../../entities/card.entity"
@@ -41,7 +41,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 export async function PUT(req: MedusaRequest, res: MedusaResponse) {
     try {
       const { id } = req.params
-      const updates = req.body
+      const updates = req.body as any;
   
       if (!id) {
         return res.status(400).json({ message: "Order ID is required in URL" })

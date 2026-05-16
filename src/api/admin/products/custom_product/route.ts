@@ -67,7 +67,7 @@ export const POST = async (
     type,
     product_image_url,
     customization_options = []
-  } = req.body
+  } = req.body as any
 
   // Basic validation
   if (!title || !base_price || !type) {

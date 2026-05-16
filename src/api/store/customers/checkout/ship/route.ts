@@ -11,7 +11,7 @@ router.post("/store/customers/checkout/ship", async (req, res) => {
       consignee,
       description,
       weight
-    } = req.body;
+    } = req.body as any;
 
     const payload = {
       Shipments: [

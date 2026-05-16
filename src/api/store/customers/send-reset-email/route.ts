@@ -7,7 +7,7 @@ import { Otp } from "../../../../entities/otp.entity"
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
-  const { email } = req.body
+  const { email } = req.body as any
   if (!email) {
     return res.status(400).json({ error: "Email is required" })
   }

@@ -1,10 +1,10 @@
-import { MedusaRequest, MedusaResponse } from "@medusajs/medusa"
+import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { initORM } from "../../../../../utils/orm"
 import { CartItem } from "../../../../../entities/cart-item.entity"
 
 export const PUT = async (req: MedusaRequest, res: MedusaResponse) => {
   const cartItemId = req.params.id
-  const { quantity, customizations } = req.body
+  const { quantity, customizations } = req.body as any
 
   const orm = await initORM()
   const em = orm.em.fork()

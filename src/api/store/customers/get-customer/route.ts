@@ -21,11 +21,8 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 
     const {
       id,
-      first_name,
-      last_name,
       email,
       phone,
-      username,
       company_name,
       pfp_url,
       created_at,
@@ -33,11 +30,8 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 
     return res.status(200).json({
       id,
-      first_name,
-      last_name,
       email,
       phone,
-      username,
       company_name,
       pfp_url,
       created_at,
@@ -67,11 +61,8 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
     const {
       id,
-      first_name,
-      last_name,
       email,
       phone,
-      username,
       company_name,
       pfp_url,
       created_at,
@@ -79,11 +70,8 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
     return res.status(200).json({
       id,
-      first_name,
-      last_name,
       email,
       phone,
-      username,
       company_name,
       pfp_url,
       created_at,

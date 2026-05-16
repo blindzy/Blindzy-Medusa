@@ -7,7 +7,13 @@ export class Customer {
     id: string = uuid()
     
     @Property()
-    email: string
+    email: string;
+
+    @Property({ nullable: true })
+    first_name?: string;
+
+    @Property({ nullable: true })
+    last_name?: string;
 
     @Property({ nullable: true })
     phone?: string

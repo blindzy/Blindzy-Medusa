@@ -4,7 +4,7 @@ import { Customer } from "../../../../entities/customer.entity";
 import bcrypt from "bcryptjs";
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
-  const { email, newPassword } = req.body;
+  const { email, newPassword } = req.body as any;
 
   if (!email || !newPassword) {
     return res.status(400).json({ error: "Email and new password are required." });

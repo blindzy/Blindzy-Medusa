@@ -10,7 +10,7 @@ interface UploadPfpBody {
 }
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
-  const { filename, mimeType, content } = req.body as UploadPfpBody
+  const { filename, mimeType, content } = req.body as any as UploadPfpBody
 
   if (!filename || !mimeType || !content) {
     return res.status(400).json({

@@ -13,7 +13,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       card_name,
       expiry_date,
       security_code,
-    } = req.body
+    } = req.body as any
 
     if (
       !email ||
