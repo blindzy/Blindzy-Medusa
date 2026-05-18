@@ -237,8 +237,8 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       .join("")
 
     await resend.emails.send({
-      from: "onboarding@blindzy.com",
-      to: "saifkhan501721@gmail.com",
+      from: "noreply@blindzy.com",
+      to: "blindzy11@gmail.com",
       subject: `🛒 New Order #${order.id} — ${fullName}`,
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #111;">
