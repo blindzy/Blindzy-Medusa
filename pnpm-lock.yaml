@@ -11,6 +11,9 @@ importers:
       '@medusajs/admin-sdk':
         specifier: 2.8.7
         version: 2.8.7
+      '@medusajs/admin-shared':
+        specifier: ^2.15.3
+        version: 2.15.3
       '@medusajs/cli':
         specifier: 2.13.3
         version: 2.13.3(@types/node@20.19.35)
@@ -21,8 +24,8 @@ importers:
         specifier: ^2.8.8
         version: 2.13.3(@medusajs/framework@2.13.3(@medusajs/cli@2.13.3(@types/node@20.19.35))(@types/node@20.19.35)(ioredis@5.10.0)(vite@5.4.21(@types/node@20.19.35))(zod@3.25.76))
       '@medusajs/dashboard':
-        specifier: 2.8.8
-        version: 2.8.8(@babel/runtime@7.28.6)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(awilix@8.0.1)(ioredis@5.10.0)(typescript@5.9.3)(vite@5.4.21(@types/node@20.19.35))
+        specifier: 2.15.3
+        version: 2.15.3(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(typescript@5.9.3)
       '@medusajs/draft-order':
         specifier: ^2.13.3
         version: 2.13.3(@medusajs/admin-sdk@2.8.7)(@medusajs/cli@2.13.3(@types/node@20.19.35))(@medusajs/framework@2.13.3(@medusajs/cli@2.13.3(@types/node@20.19.35))(@types/node@20.19.35)(ioredis@5.10.0)(vite@5.4.21(@types/node@20.19.35))(zod@3.25.76))(@medusajs/icons@2.13.3(react@18.3.1))(@medusajs/test-utils@2.13.3)(@medusajs/ui@4.1.3(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3))(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react-router-dom@6.30.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
@@ -1032,11 +1035,11 @@ packages:
   '@medusajs/admin-shared@2.13.3':
     resolution: {integrity: sha512-FLZMxH2pBy8o5XJTifgMTxnY6W8ke1skXr3fX02APjiySCdmegiUnok8u70KGVRQNU7rfPyvApldh9ZffvDNxw==}
 
+  '@medusajs/admin-shared@2.15.3':
+    resolution: {integrity: sha512-JnhrOTOCZ5q5MIhOP6P2O03/LhbxZt2CBlgyiD4sKBWo9rnO2/w0IT+mQI7ATYX44p5/1v8w6rMCXI+tLOys9w==}
+
   '@medusajs/admin-shared@2.8.7':
     resolution: {integrity: sha512-ydlKZiuaSP/swvxCyhE11TACClSd1vIboUNECWOfmT9cQYJXHj4SALzkG0p6oSNeECNSw7y3jL/7/IHN0HJY1g==}
-
-  '@medusajs/admin-shared@2.8.8':
-    resolution: {integrity: sha512-4DxNdvnTaTYO44z5LM6fliLGEai/wHr/QFtLltzwUbkWb/UCMXp0nGKNwgjtPQybHSUDEGLZmf/Bh8eqFpcseQ==}
 
   '@medusajs/admin-vite-plugin@2.13.3':
     resolution: {integrity: sha512-Fqj5eSYQERuTyce2xK52ZEi0eqiFKoJtU3WaXe2S5lqe+E/mmRGcFUUKHAEt0Fw8L3lRQq4QRK2C7b/NbUZqRg==}
@@ -1148,8 +1151,8 @@ packages:
   '@medusajs/dashboard@2.13.3':
     resolution: {integrity: sha512-GlcaO47NJRsY3Wn0DuOYdUWPEz7zS4cumDPNSbe6Okxvb7GzFfvKmADGNIEI2kdf8e2ndaZKzJrihIvuQx7jVQ==}
 
-  '@medusajs/dashboard@2.8.8':
-    resolution: {integrity: sha512-cOm5GhROBZ0imGFAkGIlp/ntUEdECPcqPph9n2Y9YmdFvlMCEXIbSoWfcxXFSSIZiruFHr8nB1nMlgdvj94waQ==}
+  '@medusajs/dashboard@2.15.3':
+    resolution: {integrity: sha512-wpi+8E8etX4ROQuP/W0fY5sNevHIgoSFaOm8wZNkJsaCHlDC2xNdlsMRBQg2GyZ8gB9d/L7Ow8i+x4xuUiKuVw==}
 
   '@medusajs/deps@2.13.3':
     resolution: {integrity: sha512-T6478UoYYVuMJG4kK5ooQR/q/mrf4ipziTYKygumiiJVlP+MPJqD3e6xK7bN2rgxUoyaDoVnBWS+fywkEmEx5g==}
@@ -1247,10 +1250,10 @@ packages:
     peerDependencies:
       react: ^18.3.1
 
-  '@medusajs/icons@2.8.8':
-    resolution: {integrity: sha512-9O7XkkSxsJ5OkpKypGy5C8CtMdbJ+xfcC8X7ZOi44UGlOdV0QhapD36cCnJsNwK4Ox+KXH2iKU5Wl5VQCmrzow==}
+  '@medusajs/icons@2.15.3':
+    resolution: {integrity: sha512-N2c5cTLCBF+Qlbk0cXc4WqXLc3lLuOpJKgzOXpy0XrJn/ws/lYsvoR+4qbsv5q6rVtdYvYoj3cUlk+HUS0//lw==}
     peerDependencies:
-      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc
+      react: ^18.3.1 || ^19.0.0
 
   '@medusajs/index@2.13.3':
     resolution: {integrity: sha512-yG70QCKIrjCCc23rOt9Py2jK+lZsMFvcd05XB8RHI3gnfNhBUfcpAn97OIIh6+V6NFNSyjPOJyjW4fUcoZ7n3w==}
@@ -1268,8 +1271,8 @@ packages:
     resolution: {integrity: sha512-JTXZE8q6kHJvZoat2edGUf7QSDVdOTHSaKQnekFD2cIzO6NRUSK+tRiIk+XQLf7FE9eWUHB/h5v9oQ6i47zhXg==}
     engines: {node: '>=20'}
 
-  '@medusajs/js-sdk@2.8.8':
-    resolution: {integrity: sha512-hFPWCo42faRiBlXCJXnwU5AKqdOAYFyZMvkPEzhV3nTytnY/bSm4qVDiGC/TmUMtaEftlNFz2ga5ZOuT4e9gEQ==}
+  '@medusajs/js-sdk@2.15.3':
+    resolution: {integrity: sha512-2nVGvHSLnK7PU/uDBS92T6jyjE4z5dM7frOgdoR2I7Gicalg5TqR6OerkFytkmHk1bI3JgMwiZvm1C7bDyCB7Q==}
     engines: {node: '>=20'}
 
   '@medusajs/link-modules@2.13.3':
@@ -1453,24 +1456,11 @@ packages:
       vite:
         optional: true
 
-  '@medusajs/types@2.8.8':
-    resolution: {integrity: sha512-rbOy+RRAC9T4ThjmkzUeDP3HfqNIbtUEFHaA7U5PBTIyhhdbIe3iZBRrFofv2tfkIO6SmBJA/h+LvJFL5+UcJA==}
-    engines: {node: '>=20'}
+  '@medusajs/ui@4.1.13':
+    resolution: {integrity: sha512-KoUn3kmtfyn2tyMv8WjBpQHveqwAARTKkEnJ+avXdclQ1wblMFST1EHTwmUKqZCMAIszDovkn5Oa0v7ZFzynOQ==}
     peerDependencies:
-      awilix: ^8.0.1
-      ioredis: ^5.4.1
-      vite: ^5 || ^6
-    peerDependenciesMeta:
-      ioredis:
-        optional: true
-      vite:
-        optional: true
-
-  '@medusajs/ui@4.0.18':
-    resolution: {integrity: sha512-QiIzYj1LqvMccAz1LkIMJAltEahj4LeqeRutvkon4+OjN4KcTNoowKsA4Q/yCeKtbiikTfVIWNtUpTN60DhvhA==}
-    peerDependencies:
-      react: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
-      react-dom: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
+      react: ^18.3.1
+      react-dom: ^18.3.1
 
   '@medusajs/ui@4.1.3':
     resolution: {integrity: sha512-mvjPFT6yN3I0YElmuSCnbiFnAZ1X4HpVWU46SXKW5PO9raM6Ny/kGDMB3GG2jPGX1Z18CoWAc5rDss8s0deh/g==}
@@ -3212,10 +3202,6 @@ packages:
     resolution: {integrity: sha512-c1Q99M5ljsIuc4YdaCwfUEXsofakb9c8+Zse2qxTadu8TalLXuAESzLvFAvNVbkmSlvlzIQOLpBCmWI9wTOt+g==}
     peerDependencies:
       '@redis/client': ^1.0.0
-
-  '@remix-run/router@1.13.1':
-    resolution: {integrity: sha512-so+DHzZKsoOcoXrILB4rqDkMDy7NLMErRdOxvzvOKb507YINKUP4Di+shbTZDhSE/pBZ+vr7XGIpcOO0VLSA+Q==}
-    engines: {node: '>=14.0.0'}
 
   '@remix-run/router@1.23.2':
     resolution: {integrity: sha512-Ic6m2U/rMjTkhERIa/0ZtXJP17QUi2CbWE7cqx4J58M8aA3QTfW+2UlQ4psvTX9IO1RfNVhK3pcpdjej7L+t2w==}
@@ -6337,25 +6323,12 @@ packages:
       '@types/react':
         optional: true
 
-  react-router-dom@6.20.1:
-    resolution: {integrity: sha512-npzfPWcxfQN35psS7rJgi/EW0Gx6EsNjfdJSAk73U/HqMEJZ2k/8puxfwHFgDQhBGmS3+sjnGbMdMSV45axPQw==}
-    engines: {node: '>=14.0.0'}
-    peerDependencies:
-      react: '>=16.8'
-      react-dom: '>=16.8'
-
   react-router-dom@6.30.3:
     resolution: {integrity: sha512-pxPcv1AczD4vso7G4Z3TKcvlxK7g7TNt3/FNGMhfqyntocvYKj+GCatfigGDjbLozC4baguJ0ReCigoDJXb0ag==}
     engines: {node: '>=14.0.0'}
     peerDependencies:
       react: '>=16.8'
       react-dom: '>=16.8'
-
-  react-router@6.20.1:
-    resolution: {integrity: sha512-ccvLrB4QeT5DlaxSFFYi/KR8UMQ4fcD8zBcR71Zp1kaYTC5oJKYAp1cbavzGrogwxca+ubjkd7XjFZKBW8CxPA==}
-    engines: {node: '>=14.0.0'}
-    peerDependencies:
-      react: '>=16.8'
 
   react-router@6.30.3:
     resolution: {integrity: sha512-XRnlbKMTmktBkjCLE8/XcZFlnHvr2Ltdr1eJX4idL55/9BbORzyZEaIkBFDhFGCEWBBItsVrDxwx3gnisMitdw==}
@@ -7210,6 +7183,9 @@ packages:
 
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
+
+  zod@4.2.0:
+    resolution: {integrity: sha512-Bd5fw9wlIhtqCCxotZgdTOMwGm1a0u75wARVEY9HMs1X17trvA/lMi4+MGK5EUfYkXVTbX8UDiDKW4OgzHVUZw==}
 
 snapshots:
 
@@ -8245,7 +8221,7 @@ snapshots:
       '@whatwg-node/promise-helpers': 1.3.2
       cross-inspect: 1.0.1
       graphql: 16.13.1
-      tslib: 2.6.3
+      tslib: 2.8.1
 
   '@graphql-tools/utils@11.0.0(graphql@16.13.1)':
     dependencies:
@@ -8625,9 +8601,9 @@ snapshots:
 
   '@medusajs/admin-shared@2.13.3': {}
 
-  '@medusajs/admin-shared@2.8.7': {}
+  '@medusajs/admin-shared@2.15.3': {}
 
-  '@medusajs/admin-shared@2.8.8': {}
+  '@medusajs/admin-shared@2.8.7': {}
 
   '@medusajs/admin-vite-plugin@2.13.3(picomatch@4.0.3)(vite@5.4.21(@types/node@20.19.35))':
     dependencies:
@@ -8814,18 +8790,21 @@ snapshots:
       - react-native
       - typescript
 
-  '@medusajs/dashboard@2.8.8(@babel/runtime@7.28.6)(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(awilix@8.0.1)(ioredis@5.10.0)(typescript@5.9.3)(vite@5.4.21(@types/node@20.19.35))':
+  '@medusajs/dashboard@2.15.3(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(typescript@5.9.3)':
     dependencies:
       '@ariakit/react': 0.4.22(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@babel/runtime': 7.28.6
       '@dnd-kit/core': 6.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@dnd-kit/sortable': 8.0.0(@dnd-kit/core@6.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
       '@dnd-kit/utilities': 3.2.2(react@18.3.1)
       '@hookform/error-message': 2.0.1(react-dom@18.3.1(react@18.3.1))(react-hook-form@7.49.1(react@18.3.1))(react@18.3.1)
       '@hookform/resolvers': 3.4.2(react-hook-form@7.49.1(react@18.3.1))
-      '@medusajs/admin-shared': 2.8.8
-      '@medusajs/icons': 2.8.8(react@18.3.1)
-      '@medusajs/js-sdk': 2.8.8(awilix@8.0.1)(ioredis@5.10.0)(vite@5.4.21(@types/node@20.19.35))
-      '@medusajs/ui': 4.0.18(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)
+      '@medusajs/admin-shared': 2.15.3
+      '@medusajs/icons': 2.15.3(react@18.3.1)
+      '@medusajs/js-sdk': 2.15.3
+      '@medusajs/ui': 4.1.13(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)
+      '@radix-ui/react-dialog': 1.1.4(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@radix-ui/react-dismissable-layer': 1.1.4(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@tanstack/react-query': 5.64.2(react@18.3.1)
       '@tanstack/react-table': 8.20.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@tanstack/react-virtual': 3.13.19(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -8836,7 +8815,8 @@ snapshots:
       i18next: 23.7.11
       i18next-browser-languagedetector: 7.2.0
       i18next-http-backend: 2.4.2
-      lodash: 4.17.23
+      lodash.debounce: 4.0.8
+      lodash.isequal: 4.5.0
       match-sorter: 6.3.4
       motion: 11.18.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       qs: 6.15.0
@@ -8849,19 +8829,15 @@ snapshots:
       react-hook-form: 7.49.1(react@18.3.1)
       react-i18next: 13.5.0(i18next@23.7.11)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react-jwt: 1.3.0(react@18.3.1)
-      react-router-dom: 6.20.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      zod: 3.25.76
+      react-router-dom: 6.30.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      zod: 4.2.0
     transitivePeerDependencies:
-      - '@babel/runtime'
       - '@emotion/is-prop-valid'
       - '@types/react'
       - '@types/react-dom'
-      - awilix
       - encoding
-      - ioredis
       - react-native
       - typescript
-      - vite
 
   '@medusajs/deps@2.13.3(@types/node@20.19.35)':
     dependencies:
@@ -9007,7 +8983,7 @@ snapshots:
     dependencies:
       react: 18.3.1
 
-  '@medusajs/icons@2.8.8(react@18.3.1)':
+  '@medusajs/icons@2.15.3(react@18.3.1)':
     dependencies:
       react: 18.3.1
 
@@ -9024,15 +9000,10 @@ snapshots:
       fetch-event-stream: 0.1.6
       qs: 6.15.0
 
-  '@medusajs/js-sdk@2.8.8(awilix@8.0.1)(ioredis@5.10.0)(vite@5.4.21(@types/node@20.19.35))':
+  '@medusajs/js-sdk@2.15.3':
     dependencies:
-      '@medusajs/types': 2.8.8(awilix@8.0.1)(ioredis@5.10.0)(vite@5.4.21(@types/node@20.19.35))
       fetch-event-stream: 0.1.6
       qs: 6.15.0
-    transitivePeerDependencies:
-      - awilix
-      - ioredis
-      - vite
 
   '@medusajs/link-modules@2.13.3(@medusajs/framework@2.13.3(@medusajs/cli@2.13.3(@types/node@20.19.35))(@types/node@20.19.35)(ioredis@5.10.0)(vite@5.4.21(@types/node@20.19.35))(zod@3.25.76))':
     dependencies:
@@ -9309,21 +9280,19 @@ snapshots:
       ioredis: 5.10.0
       vite: 5.4.21(@types/node@20.19.35)
 
-  '@medusajs/types@2.8.8(awilix@8.0.1)(ioredis@5.10.0)(vite@5.4.21(@types/node@20.19.35))':
+  '@medusajs/ui@4.1.13(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)':
     dependencies:
-      awilix: 8.0.1
-      bignumber.js: 9.3.1
-    optionalDependencies:
-      ioredis: 5.10.0
-      vite: 5.4.21(@types/node@20.19.35)
-
-  '@medusajs/ui@4.0.18(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)':
-    dependencies:
-      '@medusajs/icons': 2.8.8(react@18.3.1)
+      '@dnd-kit/core': 6.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@dnd-kit/sortable': 8.0.0(@dnd-kit/core@6.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
+      '@dnd-kit/utilities': 3.2.2(react@18.3.1)
+      '@medusajs/icons': 2.15.3(react@18.3.1)
+      '@radix-ui/react-dialog': 1.1.4(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@radix-ui/react-dismissable-layer': 1.1.4(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@tanstack/react-table': 8.20.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       clsx: 1.2.1
       copy-to-clipboard: 3.3.3
       cva: 1.0.0-beta.1(typescript@5.9.3)
+      lodash.isequal: 4.5.0
       prism-react-renderer: 2.4.1(react@18.3.1)
       prismjs: 1.30.0
       radix-ui: 1.1.2(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -11841,8 +11810,6 @@ snapshots:
   '@redis/time-series@1.1.0(@redis/client@1.6.1)':
     dependencies:
       '@redis/client': 1.6.1
-
-  '@remix-run/router@1.13.1': {}
 
   '@remix-run/router@1.23.2': {}
 
@@ -15375,24 +15342,12 @@ snapshots:
     optionalDependencies:
       '@types/react': 18.3.28
 
-  react-router-dom@6.20.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
-    dependencies:
-      '@remix-run/router': 1.13.1
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
-      react-router: 6.20.1(react@18.3.1)
-
   react-router-dom@6.30.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
       '@remix-run/router': 1.23.2
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       react-router: 6.30.3(react@18.3.1)
-
-  react-router@6.20.1(react@18.3.1):
-    dependencies:
-      '@remix-run/router': 1.13.1
-      react: 18.3.1
 
   react-router@6.30.3(react@18.3.1):
     dependencies:
@@ -16261,3 +16216,5 @@ snapshots:
   zod@3.22.4: {}
 
   zod@3.25.76: {}
+
+  zod@4.2.0: {}
