@@ -144,7 +144,7 @@ export async function GET(req: Request, res: Response) {
     ) AS type
 
   FROM product p
-  WHERE p.deleted_at IS NULL AND p.id = ?
+  WHERE p.deleted_at IS NULL AND p.id = ? AND p.status = 'published'
 `;
     const rows = await conn.execute(sql, [id]);
 
