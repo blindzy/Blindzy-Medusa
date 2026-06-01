@@ -23,9 +23,10 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     const body = req.body as {
       customer_id?: string
       address?: any
+      metadata?: any
     }
 
-    const { customer_id, address } = body
+    const { customer_id, address, metadata } = body
 
     if (!customer_id) {
       return res.status(400).json({ message: "Missing required field: customer_id" })
@@ -112,6 +113,9 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       0
     )
 
+    // Apply promo discount if present
+    const discountedAmount = metadata?.discounted_amount ?? totalAmount
+
     // ─── 5. Create the order (pending) ───────────────────────────────────────
     const [order] = await orderModule.createOrders([
       {
@@ -130,7 +134,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
             amount: 0,
           }
         ],
-        metadata: { custom_checkout: true },
+        metadata: { custom_checkout: true, ...(metadata ?? {}) },
       },
     ])
 
@@ -163,7 +167,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     // ─── 6. Create & link a payment collection ───────────────────────────────
     const paymentCollection = await paymentModule.createPaymentCollections({
       currency_code,
-      amount: totalAmount,
+      amount: discountedAmount,
     })
 
     await remoteLink.create({
@@ -177,7 +181,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       {
         provider_id: "pp_system_default",
         currency_code,
-        amount: totalAmount,
+        amount: discountedAmount,
         data: {},
       }
     )
@@ -197,8 +201,35 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     // ─── 10. Capture the payment ─────────────────────────────────────────────
     await paymentModule.capturePayment({
       payment_id: payment.id,
-      amount: totalAmount,
+      amount: discountedAmount,
     })
+
+    // ─── 10.1. Track Promo Usage ─────────────────────────────────────────────
+
+    if (metadata?.promo_code) {
+      const promotionModule: any = req.scope.resolve(Modules.PROMOTION)
+
+      const promotions = await promotionModule.listPromotions(
+        { code: metadata.promo_code },
+        {}
+      )
+
+      const promo = promotions[0]
+
+      if (promo) {
+        const usedBy: string[] = promo.metadata?.used_by ?? []
+
+        if (!usedBy.includes(customer_id)) {
+          await promotionModule.updatePromotions([{
+            id: promo.id,
+            metadata: {
+              ...promo.metadata,
+              used_by: [...usedBy, customer_id],
+            }
+          }])
+        }
+      }
+    }
 
     await paymentModule.completePaymentCollections(paymentCollection.id)
 
@@ -238,7 +269,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
     await resend.emails.send({
       from: "noreply@blindzy.com",
-      to: "saif@team.aithur.com",
+      to: `${process.env.OWNER_MAIL}`,
       subject: `🛒 New Order #${order.id} — ${fullName}`,
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #111;">
@@ -275,7 +306,8 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
             </table>
 
             <p style="text-align: right; font-size: 16px; font-weight: bold; margin: 0;">
-              Total: ${rawCurrency} ${(totalAmount).toFixed(2)}
+              ${metadata?.promo_code ? `<span style="color: #6b7280; text-decoration: line-through;">${rawCurrency} ${totalAmount.toFixed(2)}</span><br/>Promo: ${metadata.promo_code} (${metadata.discount_percent}% off)<br/>` : ''}
+Total: ${rawCurrency} ${discountedAmount.toFixed(2)}
             </p>
 
           </div>
