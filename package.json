@@ -29,11 +29,11 @@
   },
   "dependencies": {
     "@medusajs/admin-sdk": "2.8.7",
-    "@medusajs/admin-shared": "^2.15.3",
+    "@medusajs/admin-shared": "^2.13.3",
     "@medusajs/cli": "2.13.3",
     "@medusajs/core-flows": "2.13.3",
     "@medusajs/customer": "^2.8.8",
-    "@medusajs/dashboard": "2.15.3",
+    "@medusajs/dashboard": "2.13.3",
     "@medusajs/draft-order": "^2.13.3",
     "@medusajs/file-local": "^2.13.3",
     "@medusajs/framework": "2.13.3",
