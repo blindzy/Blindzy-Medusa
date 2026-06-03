@@ -255,17 +255,33 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       .join(", ")
 
     const itemsTableRows = orderItems
-      .map(
-        (item) => `
+      .map((item) => {
+        const customizations: { title: string; value: string }[] =
+          item.metadata?.customizationData ?? []
+
+        const customizationRows = customizations
+          .map(
+            (c) => `
         <tr>
-          <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb;">${item.title}</td>
-          <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
-          <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">
-            ${rawCurrency} ${(item.unit_price * item.quantity).toFixed(2)}
+          <td colspan="3" style="padding: 4px 12px 4px 24px; font-size: 12px; color: #6b7280; border-bottom: 1px solid #f3f4f6;">
+            <span style="color: #374151; font-weight: 500;">${c.title}:</span> ${c.value}
           </td>
         </tr>`
-      )
+          )
+          .join("")
+
+        return `
+      <tr>
+        <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; font-weight: 500;">${item.title}</td>
+        <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
+        <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; text-align: right;">
+          ${rawCurrency} ${(item.unit_price * item.quantity).toFixed(2)}
+        </td>
+      </tr>
+      ${customizationRows}`
+      })
       .join("")
+
 
     await resend.emails.send({
       from: "noreply@blindzy.com",
@@ -327,7 +343,7 @@ Total: ${rawCurrency} ${discountedAmount.toFixed(2)}
     console.error("❌ Checkout error:", err)
     return res.status(500).json({
       message: "Internal server error",
-      error: (err as Error).message ?? err,
+      error: (err as any).message ?? err,
     })
   }
 }
